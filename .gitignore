@@ -5,5 +5,10 @@
 .vscode/launch.json
 .vscode/ipch
 
+# Protocol Buffers
+*.pb.c
+*.pb.h
+*_pb2.py
+
 # Python
 __pycache__/
