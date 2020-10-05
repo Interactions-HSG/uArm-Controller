@@ -9,16 +9,18 @@ import sys
 import threading
 import time
 
+
 import logging
 import serial
 import serial.threaded
 
 import heartbeat_pb2
 
+
 class ControllerPacketHandler(serial.threaded.Packetizer):
     """Callback for received packet"""
     def handle_packet(self, packet):
-        payload = message_pb2.Input()
+        payload = heartbeat_pb2.Input()
         payload.ParseFromString(packet)
         # pylint: disable=no-member
         logging.info(">> pin: %d, volume: %d", payload.pin, payload.volume)
@@ -75,7 +77,7 @@ if __name__ == '__main__':
     while(True):
         controller.interval = 1
         for i in range(1000):
-            req = message_pb2.Request()
+            req = heartbeat_pb2.Request()
             # pylint: disable=no-member
             req.id = i
             logging.info("<< id: %d", req.id)
