@@ -7,7 +7,7 @@ all: example
 example:
 	# for the example
 	protoc -I=./protobuf --python_out=./examples ./protobuf/heartbeat.proto
-	nanopb_generator --output-dir=./include --timestamp ./protobuf/heartbeat.proto
+	nanopb_generator --strip-path --output-dir=./include --timestamp ./protobuf/heartbeat.proto
 
 clean:
 	# for the example
