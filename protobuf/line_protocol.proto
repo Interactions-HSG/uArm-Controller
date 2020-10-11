@@ -1,0 +1,104 @@
+syntax = "proto3";
+
+////// Enum definitions /////
+// Definition of triggering mode: POLLING => only on request, EVENT =>
+enum Activation {
+  POLLING = 0;  //=> activation only on request (default)
+  EVENT = 1;    //=> activation only on events 
+  COMPLEX = 2;  //=> combination of Polling and Event-driven mode
+}
+// Definition of digital pin modes
+enum Digital_Mode{
+  INPUT = 0; // (default)
+  OUTPUT = 1;
+  INPUT_PULLUP = 2;
+}
+// Definition of digital pin modes
+enum Digital_Output{
+  LOW = 0; // (default)
+  HIGH = 1;
+}
+
+// Definition of possible UART-TTL ports
+enum UART_Port{
+  UART2 = 0; // (default)
+  UART3 = 1;
+}
+
+////// Main messages: Feedback + Request/////
+// message sent from controller to gateway
+message Feedback {
+  //int32 code = 1;
+  uint32 profile_id = 1;  //  used to identify profile
+  string message = 2;
+  bytes data = 3;
+}
+
+// message sent from gateway to controller
+message Request {
+  // action or registration
+  oneof request_type{
+    Action  action = 1;
+    Registration  registration = 2;
+  }
+}
+// Actions: request on existing/registered field devices
+message Action{
+
+  uint32 profile_id = 1;        // unique identification of profile
+  Activation activation = 2;  // which mode is used for the profile => polling, event-driven or combination of both
+    
+  // Driver: which driver is used for the profile registration (R_ for Registration msg)
+  // TODO: find better way to avoid long msg names
+  oneof driver{
+    A_Digital_Generic a_digital_generic = 3;
+    A_UART_TTL_Generic a_uart_ttl_generic = 4;
+    //A_IIC_Generic a_iic_generic = 4;
+    //A_Digital_Ultrasonic a_digital_ultrasonic = 5;
+    // ...
+  }
+
+}
+
+// Registration: request to register/initialize new field devices/ profiles
+message Registration{
+  
+  uint32 profile_id = 1;        // unique identification of profile
+  Activation activation = 2;  // which mode is used for the profile => polling, event-driven or combination of both
+  
+  // Driver: which driver is used for the profile registration (R_ for Registration msg)
+  // TODO: find better way to avoid long msg names
+  oneof driver{
+    R_Digital_Generic r_digital_generic = 3;
+    R_UART_TTL_Generic r_uart_ttl_generic = 4;
+    //R_IIC_Generic r_iic_generic = 4;
+    //R_Digital_Ultrasonic r_digital_ultrasonic = 5;
+    // ...
+  }
+}
+
+////// Action Driver Messages /////
+// Registration message for Digital generic driver
+// TODO: how to implement inputmode?
+message A_Digital_Generic{
+  uint32 pin = 1;
+  Digital_Output output = 2;  
+}
+// Registration message for UART-ttl generic driver
+message A_UART_TTL_Generic{
+  string message = 1;
+  // TODO: add header + tail fields for message begin/end
+}
+
+////// Registration Driver Messages /////
+// Registration message for Digital generic driver
+message R_Digital_Generic{
+  uint32 pin = 1;
+  Digital_Mode mode = 2;
+}
+// Registration message for UART-ttl generic driver
+message R_UART_TTL_Generic{
+  UART_Port port = 1;
+  uint32 baudrate = 2;
+  // TODO: add header + tail fields for message begin/end
+}

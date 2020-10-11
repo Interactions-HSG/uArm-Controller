@@ -6,11 +6,11 @@ all: example
 
 example:
 	# for the example
-	protoc -I=./protobuf --python_out=./examples ./protobuf/heartbeat.proto
-	nanopb_generator --output-dir=./include --timestamp ./protobuf/heartbeat.proto
-
+	protoc -I=./protobuf --python_out=./examples ./protobuf/line_protocol.proto
+	nanopb_generator --output-dir=./include --timestamp ./protobuf/line_protocol.proto
+	mv ./include/protobuf/line_protocol.pb.c ./src
 clean:
 	# for the example
-	rm -f examples/heartbeat_pb2.py
-	rm -f include/protobuf/heartbeat.pb.c
-	rm -f include/protobuf/heartbeat.pb.c
+	rm -f examples/line_protocol_pb2.py
+	rm -f include/protobuf/line_protocol.pb.h
+	rm -f src/line_protocol.pb.c
