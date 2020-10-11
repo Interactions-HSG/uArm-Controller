@@ -1,7 +1,9 @@
 syntax = "proto3";
 
-////// Enum definitions /////
-// Definition of triggering mode: POLLING => only on request, EVENT =>
+/*========================================================================*/
+/*                          ENUM DEFINTIONS                               */
+/*========================================================================*/
+// Definition of triggering mode: 
 enum Activation {
   POLLING = 0;  //=> activation only on request (default)
   EVENT = 1;    //=> activation only on events 
@@ -13,7 +15,7 @@ enum Digital_Mode{
   OUTPUT = 1;
   INPUT_PULLUP = 2;
 }
-// Definition of digital pin modes
+// Definition of digital pin output
 enum Digital_Output{
   LOW = 0; // (default)
   HIGH = 1;
@@ -25,7 +27,9 @@ enum UART_Port{
   UART3 = 1;
 }
 
-////// Main messages: Feedback + Request/////
+/*========================================================================*/
+/*                  MAIN MESSAGES: REQUEST + FEEDBACK                     */
+/*========================================================================*/
 // message sent from controller to gateway
 message Feedback {
   //int32 code = 1;
@@ -42,6 +46,11 @@ message Request {
     Registration  registration = 2;
   }
 }
+
+/*========================================================================*/
+/*                  SUB MESSAGES: ACTION + REGISTRATION                   */
+/*========================================================================*/
+
 // Actions: request on existing/registered field devices
 message Action{
 
@@ -64,7 +73,8 @@ message Action{
 message Registration{
   
   uint32 profile_id = 1;        // unique identification of profile
-  Activation activation = 2;  // which mode is used for the profile => polling, event-driven or combination of both
+  Activation activation = 2;    // which mode is used for the profile => polling, event-driven or combination of both
+  
   
   // Driver: which driver is used for the profile registration (R_ for Registration msg)
   // TODO: find better way to avoid long msg names
@@ -77,7 +87,10 @@ message Registration{
   }
 }
 
-////// Action Driver Messages /////
+/*========================================================================*/
+/*                  ACTION DRIVER MESSAGES                                */
+/*========================================================================*/
+
 // Registration message for Digital generic driver
 // TODO: how to implement inputmode?
 message A_Digital_Generic{
@@ -90,7 +103,10 @@ message A_UART_TTL_Generic{
   // TODO: add header + tail fields for message begin/end
 }
 
-////// Registration Driver Messages /////
+/*========================================================================*/
+/*                  REGISTRATION DRIVER MESSAGES                          */
+/*========================================================================*/
+
 // Registration message for Digital generic driver
 message R_Digital_Generic{
   uint32 pin = 1;
