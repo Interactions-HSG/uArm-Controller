@@ -1,36 +1,101 @@
+/**************************************************************************/
+/*!
+    @file     main.cpp
+    @author   Jonas Brütsch
+
+    Main routine for the uFactory Controller firmware.
+
+*/
+/**************************************************************************/
+
 #include <main.h>
-////////////////////////////////////////////////////
-//msc
+
+/*========================================================================*/
+/*                  PRIVATE DEFINITIONS                                   */
+/*========================================================================*/
+/* Macros */
 #define BAUDRATE 115200
 #define TERMINATOR 0
 
-/* global variables */
+/* Variables */
 bool last_req_decode_success = false;
 // status to indicate setup phase => no feedback after device initialization
 bool setup_flag = false;
 
-/* pb */
+/* Protobuf streams */
 pb_istream_s pb_in;
 pb_ostream_s pb_out;
 
-
-////////////////////////////////////////////////////
-//prototypes
+/* Function prototypes */
+/**
+    @brief  Handles incoming  Request messages
+*/
 void request_handler();
+
+/**
+    @brief  Handles incoming Action messages
+    @param  action: Action message
+*/
 void action_handler(Action action);
+
+/**
+    @brief  Handles incoming Registration messages
+    @param  registration: Registration message
+*/
 void registration_handler(Registration registration);
 
-bool send_msg(uint64_t);
+/**
+    @brief  Sends simple message to gateway  (for testing)
+    @param  profile_id: Profile_id 
+*/
+bool send_msg(uint32_t profile_id);
 
-///////////////////////////////////////
-// Message Handler: handles incoming packets
+
+/*========================================================================*/
+/*                  INITIALIZATION                                        */
+/*========================================================================*/
+void setup(void)
+{ 
+  // indicate setup phase: no feedback should be sent on re-initialization
+  setup_flag = true;
+
+  /* init the serial i/f for the MES */
+  Serial.begin(BAUDRATE);
+  pb_in = as_pb_istream(Serial);
+  pb_out = as_pb_ostream(Serial);
+
+  // TODO: initialize SD card manager
+  // TODO: load registrations from SD card => re-initialize stored profiles
+
+  // stop setup phase
+  setup_flag = false;
+  delay(1000);
+}
+
+/*========================================================================*/
+/*                  MAIN LOOP                                             */
+/*========================================================================*/
+void loop(void)
+{ 
+  // process incoming message
+  request_handler();
+  delay(1000);
+}
+
+/*========================================================================*/
+/*                  FUNCTION DEFINITIONS                                  */
+/*========================================================================*/
+/**************************************************************************/
+/*
+    Request Handler: handles incoming request messages
+*/ 
 void request_handler()
 {
   // process the incoming packet if the buffer is not empty
   if (Serial.available() > 0)
   { 
-    /* current request */
-    Request req; // incoming request => TODO: not sure if good when global
+    // current request message
+    Request req; 
 
     // FIXME: works but returns not true => check why
     last_req_decode_success = pb_decode(&pb_in, Request_fields, &req);
@@ -44,10 +109,13 @@ void request_handler()
   }
 }
 
-///////////////////////////////////////
-// Action Handler: handles incoming actions
+/**************************************************************************/
+/*
+    Action Handler: handles incoming actions
+*/ 
 void action_handler(Action action)
-{
+{ 
+  // TODO: check if profile_id is registered => if not: send ERROR msg
   // use corresponding driver function
   switch(action.which_driver){
     case Action_a_digital_generic_tag:
@@ -65,8 +133,10 @@ void action_handler(Action action)
   } 
 }
 
-///////////////////////////////////////
-//Registration Handler: handles incoming registrations
+/**************************************************************************/
+/*
+    Registration Handler: handles incoming registrations
+*/ 
 void registration_handler(Registration registration)
 {
   // TODO: implement different activations (Polling, event-driven) 
@@ -97,10 +167,15 @@ void registration_handler(Registration registration)
 
 }
 
-
-///////////////////////////////////////
-//send feedback msg
-bool send_msg(uint64_t profile_id) //, String msg)
+/**************************************************************************/
+/*
+    Function used to send feedback to the gateway 
+    TODO:
+    => needs to be updated to be able to handle string fields
+    => should be used for all feedbacks (Polling feedback + Event feedback)
+    => better name for function
+*/ 
+bool send_msg(uint32_t profile_id) //, String msg)
 {
   Feedback feedback = {};
   feedback.profile_id = profile_id;
@@ -108,29 +183,4 @@ bool send_msg(uint64_t profile_id) //, String msg)
   bool res = pb_encode(&pb_out, Feedback_fields, &feedback);
   Serial.write(TERMINATOR);
   return res;
-}
-
-///////////////////////////////////////
-//initialization
-void setup(void)
-{ 
-  // indicate setup phase: no feedback should be sent on re-initialization
-  setup_flag = true;
-  /* init the serial i/f for the MES */
-  Serial.begin(BAUDRATE);
-  pb_in = as_pb_istream(Serial);
-  pb_out = as_pb_ostream(Serial);
-
-  // TODO: initialize SD card manager
-  // TODO: load registrations from SD card => re-initialize stored profiles
-
-  // stop setup phase
-  setup_flag = false;
-  delay(1000);
-}
-
-void loop(void) //main loop
-{
-  request_handler();
-  delay(1000);
 }

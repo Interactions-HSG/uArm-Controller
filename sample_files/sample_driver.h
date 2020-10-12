@@ -1,21 +1,19 @@
-#ifndef _DIGITAL_GENERIC_H_
-#define _DIGITAL_GENERIC_H_
+#ifndef _SAMPLE_DRIVER_H_
+#define _SAMPLE_DRIVER_H_
 
 #include "main.h"
-
 /*========================================================================*/
 /*                          PUBLIC FUNCTIONS                              */
 /*========================================================================*/
 
 /**************************************************************************/
 /*!
-    @brief  Initialization function for generic driver for digital I/O
+    @brief  Initialization function for sample_driver
 */
-void init_digital_generic(uint32_t profile_id, R_Digital_Generic profile);
-
+void init_sample_driver(uint32_t profile_id, R_Sample_Driver profile);
 /**************************************************************************/
 /*!
-    @brief  Action function for generic driver for digital I/O
+    @brief  Action function for sample_driver 
 */
-void run_digital_generic(uint32_t profile_id, A_Digital_Generic action);
+void run_sample_driver(uint32_t profile_id, A_Sample_Driver action);
 #endif

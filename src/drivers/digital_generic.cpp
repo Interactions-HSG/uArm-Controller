@@ -5,8 +5,8 @@
 /*========================================================================*/
 
 /**************************************************************************/
-/*!
-    @brief  Initialization of digital pin
+/*
+    Initialization of digital pin
 */
 void init_digital_generic(uint32_t profile_id, R_Digital_Generic profile)
 {
@@ -14,11 +14,12 @@ void init_digital_generic(uint32_t profile_id, R_Digital_Generic profile)
     pinMode((uint8_t) profile.pin, (uint8_t) profile.mode);
     // TODO: update confuguration list with new pin allocation (pin_x = profile_id)
     //       + call profile_manager::delete(profile_id_x) for all profiles using pin_x
+    
 }
 
 /**************************************************************************/
-/*!
-    @brief  Write/(read) digital pin
+/*
+    Write/(read) digital pin
 */
 void run_digital_generic(uint32_t profile_id, A_Digital_Generic action){
     
