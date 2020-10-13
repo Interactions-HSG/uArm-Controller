@@ -1,5 +1,5 @@
-#ifndef _SAMPLE_DRIVER_H_
-#define _SAMPLE_DRIVER_H_
+#ifndef _TEMPLATE_DRIVER_H_
+#define _TEMPLATE_DRIVER_H_
 
 #include "main.h"
 /*========================================================================*/
@@ -8,12 +8,12 @@
 
 /**************************************************************************/
 /*!
-    @brief  Initialization function for sample_driver
+    @brief  Initialization function for template_driver
 */
-void init_sample_driver(uint32_t profile_id, R_Sample_Driver profile);
+void init_template_driver(uint32_t profile_id, R_Template_Driver profile);
 /**************************************************************************/
 /*!
-    @brief  Action function for sample_driver 
+    @brief  Action function for template_driver 
 */
-void run_sample_driver(uint32_t profile_id, A_Sample_Driver action);
+void run_template_driver(uint32_t profile_id, A_Template_Driver action);
 #endif
