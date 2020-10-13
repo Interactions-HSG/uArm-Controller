@@ -5,6 +5,8 @@
 
     Main routine for the uFactory Controller firmware.
 
+    TODO: Brief description of structure
+
 */
 /**************************************************************************/
 
@@ -44,11 +46,6 @@ void action_handler(Action action);
 */
 void registration_handler(Registration registration);
 
-/**
-    @brief  Sends simple message to gateway  (for testing)
-    @param  profile_id: Profile_id 
-*/
-bool send_msg(uint32_t profile_id);
 
 
 /*========================================================================*/
@@ -105,6 +102,7 @@ void request_handler()
     else if (req.which_request_type == Request_registration_tag)
       registration_handler(req.request_type.registration);
     else //TODO: implement better error feedback messages
+      // FIXME: does not work every time!  
       send_msg(404);
   }
 }
@@ -140,9 +138,10 @@ void action_handler(Action action)
 void registration_handler(Registration registration)
 {
   // TODO: implement different activations (Polling, event-driven) 
-  // 1. check if profile_id already registered in registrations-list:
-  //     yes => call profile_manager::delete(profile_id) (to delete old registered profile + clear all ports in config-list)
-  // 2. TODO: use driver manager to initialize profile => driver_manager.cpp with driver_registration() driver_action()
+  
+
+  // clear old profile, if already registered
+  delete_profile(registration.profile_id);
   
   // use corresponding driver function
   switch(registration.which_driver){
@@ -161,8 +160,8 @@ void registration_handler(Registration registration)
       break;
   }
 
-  // 3. check if interfaces already registered in config-file => if yes, remove old from config-file
-  // 4. use config manager to save new entry in config-file (1. in struct, 2. save in SD card)
+  // use profile manager to save new registration on registered_profiles + on SD card
+  store_profile(registration);
 
 
 }

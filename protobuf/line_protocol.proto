@@ -94,8 +94,7 @@ message Registration{
 // Registration message for Digital generic driver
 // TODO: how to implement inputmode?
 message A_Digital_Generic{
-  uint32 pin = 1;
-  Digital_Output output = 2;  
+  Digital_Output output = 1;  
 }
 // Registration message for UART-ttl generic driver
 message A_UART_TTL_Generic{

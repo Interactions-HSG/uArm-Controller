@@ -41,7 +41,6 @@ class ControllerPacketHandler(serial.threaded.Packetizer):
             req_R = line_protocol_pb2.Request()
             req_R.action.profile_id = r_LED_profile_id
             req_R.action.activation = line_protocol_pb2.POLLING
-            req_R.action.a_digital_generic.pin = 2
             req_R.action.a_digital_generic.output = line_protocol_pb2.LOW
             controller.send(req_R.SerializeToString())
             logging.info("Red LED action: LOW sent")
@@ -51,7 +50,6 @@ class ControllerPacketHandler(serial.threaded.Packetizer):
             req_R = line_protocol_pb2.Request()
             req_R.action.profile_id = r_LED_profile_id
             req_R.action.activation = line_protocol_pb2.POLLING
-            req_R.action.a_digital_generic.pin = 2
             req_R.action.a_digital_generic.output = line_protocol_pb2.HIGH
             controller.send(req_R.SerializeToString())
             logging.info("Red LED action: HIGH sent")

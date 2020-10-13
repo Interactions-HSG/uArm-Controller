@@ -1,5 +1,6 @@
 #include <drivers/digital_generic.h>
 
+
 /*========================================================================*/
 /*                          PUBLIC FUNCTIONS                              */
 /*========================================================================*/
@@ -23,8 +24,11 @@ void init_digital_generic(uint32_t profile_id, R_Digital_Generic profile)
 */
 void run_digital_generic(uint32_t profile_id, A_Digital_Generic action){
     
-    // TODO: implement INPUT mode + pin should be taken from registrations vector
+    // get pin from corresponding profile
+    uint8_t pin = registered_profiles[profile_id].driver.r_digital_generic.pin;
+    //send debug msg
+    send_msg(pin);
     // maybe add dynamic mode (INPUT/OUTPUT) changes
-    digitalWrite((uint8_t) action.pin, (uint8_t) action.output);
+    digitalWrite(pin, (uint8_t) action.output);
     
 }
