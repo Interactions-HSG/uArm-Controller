@@ -7,8 +7,8 @@ all: example
 example:
 	# for the example
 	protoc -I=./protobuf --python_out=./examples ./protobuf/line_protocol.proto
-	nanopb_generator --output-dir=./include --timestamp ./protobuf/line_protocol.proto
-	mv ./include/protobuf/line_protocol.pb.c ./src
+	nanopb_generator --strip-path --output-dir=./include --timestamp ./protobuf/line_protocol.proto
+
 clean:
 	# for the example
 	rm -f examples/line_protocol_pb2.py
