@@ -47,7 +47,6 @@ void action_handler(Action action);
 void registration_handler(Registration registration);
 
 
-
 /*========================================================================*/
 /*                  INITIALIZATION                                        */
 /*========================================================================*/
@@ -130,7 +129,8 @@ void action_handler(Action action)
       send_msg(action.profile_id); //, "led possibly registered");
       break;
     case Action_a_uart_ttl_generic_tag:
-      //call driver function
+      //call action function of generic UART TTL driver
+      run_uart_ttl_generic(action.profile_id, action.driver.a_uart_ttl_generic);
       break;
     default:
       // ERROR: no driver functions definded for specified registration
@@ -157,10 +157,16 @@ void registration_handler(Registration registration)
       init_digital_generic( registration.profile_id, registration.driver.r_digital_generic);
       // send confirmation if not in setup phase
       if(!setup_flag)
+        // TODO: send better feedback message
         send_msg(registration.profile_id); //, "led possibly registered");
       break;
     case Registration_r_uart_ttl_generic_tag:
-      //call driver function
+      //call initialization function
+      init_uart_ttl_generic( registration.profile_id, registration.driver.r_uart_ttl_generic);
+      // send confirmation if not in setup phase
+      if(!setup_flag)
+        // TODO: send better feedback message
+        send_msg(registration.profile_id); //, "led possibly registered");
       break;
     default:
       // ERROR: no driver functions definded for specified registration

@@ -1,5 +1,5 @@
-#ifndef _SAMPLE_DRIVER_H_
-#define _SAMPLE_DRIVER_H_
+#ifndef _UART_TTL_GENERIC_H_
+#define _UART_TTL_GENERIC_H_
 
 #include "main.h"
 /*========================================================================*/
@@ -8,12 +8,12 @@
 
 /**************************************************************************/
 /*!
-    @brief  Initialization function for sample_driver
+    @brief  Initialization function for uart_ttl_generic
 */
-void init_sample_driver(uint32_t profile_id, R_Sample_Driver profile);
+void init_uart_ttl_generic(uint32_t profile_id, R_UART_TTL_Generic profile);
 /**************************************************************************/
 /*!
-    @brief  Action function for sample_driver 
+    @brief  Action function for uart_ttl_generic 
 */
-void run_sample_driver(uint32_t profile_id, A_Sample_Driver action);
+void run_uart_ttl_generic(uint32_t profile_id, A_UART_TTL_Generic action);
 #endif

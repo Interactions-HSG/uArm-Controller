@@ -31,10 +31,11 @@ enum UART_Port{
 /*                  MAIN MESSAGES: REQUEST + FEEDBACK                     */
 /*========================================================================*/
 // message sent from controller to gateway
+// TODO: has to be further designed
 message Feedback {
   //int32 code = 1;
-  uint32 profile_id = 1;  //  used to identify profile
-  string message = 2;
+  uint32 profile_id = 1;  // used to identify profile
+  string message = 2;     // used for debugging messages
   bytes data = 3;
 }
 
@@ -55,10 +56,8 @@ message Request {
 message Action{
 
   uint32 profile_id = 1;        // unique identification of profile
-  Activation activation = 2;  // which mode is used for the profile => polling, event-driven or combination of both
-    
+     
   // Driver: which driver is used for the profile registration (R_ for Registration msg)
-  // TODO: find better way to avoid long msg names
   oneof driver{
     A_Digital_Generic a_digital_generic = 3;
     A_UART_TTL_Generic a_uart_ttl_generic = 4;
@@ -75,9 +74,7 @@ message Registration{
   uint32 profile_id = 1;        // unique identification of profile
   Activation activation = 2;    // which mode is used for the profile => polling, event-driven or combination of both
   
-  
   // Driver: which driver is used for the profile registration (R_ for Registration msg)
-  // TODO: find better way to avoid long msg names
   oneof driver{
     R_Digital_Generic r_digital_generic = 3;
     R_UART_TTL_Generic r_uart_ttl_generic = 4;

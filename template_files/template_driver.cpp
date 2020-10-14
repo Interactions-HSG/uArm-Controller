@@ -1,4 +1,4 @@
-#include <drivers/sample_driver.h>
+#include <drivers/template_driver.h>
 
 /*========================================================================*/
 /*                          FUNCTION DEFINITIONS                          */
@@ -6,18 +6,18 @@
 
 /**************************************************************************/
 /*!
-    TODO: Description of initialization function for sample_driver
+    TODO: Description of initialization function for template_driver
 */
-void init_sample_driver(uint32_t profile_id, R_Sample_Driver profile)
+void init_template_driver(uint32_t profile_id, R_Template_Driver profile)
 {
     // TODO: implement initialization
 }
 
 /**************************************************************************/
 /*!
-    TODO: Description of initialization function for sample_driver
+    TODO: Description of initialization function for template_driver
 */
-void run_sample_driver(uint32_t profile_id, A_Sample_Driver action){
+void run_template_driver(uint32_t profile_id, A_Template_Driver action){
     
     // TODO: implement action function
     

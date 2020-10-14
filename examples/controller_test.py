@@ -54,7 +54,7 @@ class ControllerPacketHandler(serial.threaded.Packetizer):
             controller.send(req_R.SerializeToString())
             logging.info("Red LED action: HIGH sent")
             r_LED_on = True
-            
+
 
 class Controller(serial.threaded.ReaderThread):
     """
