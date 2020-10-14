@@ -7,10 +7,20 @@
 #include <protobuf/line_protocol.pb.h>
 // include drivers
 #include <drivers/digital_generic.h>
+#include <drivers/uart_ttl_generic.h>
 
 /*========================================================================*/
 /*                          PUBLIC VARIABLES                              */
 /*========================================================================*/
 
+/*========================================================================*/
+/*                          PUBLIC FUNCTIONS                              */
+/*========================================================================*/
+
+/**
+    @brief  Sends simple message to gateway  (for testing)
+    @param  profile_id: Profile_id 
+*/
+bool send_msg(uint32_t profile_id);
 
 #endif
