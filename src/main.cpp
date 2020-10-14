@@ -94,16 +94,23 @@ void request_handler()
     // current request message
     Request req; 
 
+    
     // FIXME: works but returns not true => check why
     last_req_decode_success = pb_decode(&pb_in, Request_fields, &req);
     // check if action or registration
-    if (req.which_request_type == Request_action_tag)
+    if (req.which_request_type == Request_action_tag){
       action_handler(req.request_type.action);
-    else if (req.which_request_type == Request_registration_tag)
+      send_msg(req.which_request_type);
+    }
+    else if (req.which_request_type == Request_registration_tag){
       registration_handler(req.request_type.registration);
-    else //TODO: implement better error feedback messages
+      send_msg(req.which_request_type);
+    }
+    else {//TODO: implement better error feedback messages
       // FIXME: does not work every time!  
       send_msg(404);
+      send_msg(req.which_request_type);
+    }
   }
 }
 
@@ -177,6 +184,7 @@ void registration_handler(Registration registration)
 bool send_msg(uint32_t profile_id) //, String msg)
 {
   Feedback feedback = {};
+  feedback.message.funcs.d
   feedback.profile_id = profile_id;
   //feedback.message = msg;
   bool res = pb_encode(&pb_out, Feedback_fields, &feedback);
