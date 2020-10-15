@@ -13,18 +13,10 @@
 /*========================================================================*/
 /*                  PRIVATE DEFINITIONS                                   */
 /*========================================================================*/
-/* Macros */
-#define BAUDRATE 115200
-#define TERMINATOR 0
 
 /* Variables */
-bool last_req_decode_success = false;
 // status to indicate setup phase => no feedback after device initialization
 bool setup_flag = false;
-
-/* Protobuf streams */
-pb_istream_s pb_in;
-pb_ostream_s pb_out;
 
 /* Function prototypes */
 /**
@@ -48,15 +40,14 @@ void registration_handler(Registration registration);
 /*========================================================================*/
 /*                  INITIALIZATION                                        */
 /*========================================================================*/
+
 void setup(void)
 { 
   // indicate setup phase: no feedback should be sent on re-initialization
   setup_flag = true;
 
-  /* init the serial i/f for the MES */
-  Serial.begin(BAUDRATE);
-  pb_in = as_pb_istream(Serial);
-  pb_out = as_pb_ostream(Serial);
+  // initialize protobuf message communication 
+  protobuf_init();
 
   // TODO: initialize SD card manager
   // TODO: load registrations from SD card => re-initialize stored profiles
@@ -66,9 +57,11 @@ void setup(void)
   delay(1000);
 }
 
+
 /*========================================================================*/
 /*                  MAIN LOOP                                             */
 /*========================================================================*/
+
 void loop(void)
 { 
   // process incoming message
@@ -76,9 +69,11 @@ void loop(void)
   delay(1000);
 }
 
+
 /*========================================================================*/
 /*                  FUNCTION DEFINITIONS                                  */
 /*========================================================================*/
+
 /**************************************************************************/
 /*
     Request Handler: handles incoming request messages
@@ -91,15 +86,18 @@ void request_handler()
     // current request message
     Request req; 
 
-    // FIXME: works but returns not true => check why
-    last_req_decode_success = pb_decode(&pb_in, Request_fields, &req);
+    // decode the received protobuf message
+    protobuf_decode(&req);
+    //send_feedback(200, "message received");
+    
     // check if action or registration
     if (req.which_request_type == Request_action_tag)
       action_handler(req.request_type.action);
     else if (req.which_request_type == Request_registration_tag)
       registration_handler(req.request_type.registration);
-    else //TODO: implement better error feedback messages
-      send_msg(404);
+    else 
+      // ERROR: request type of msg is incorrect
+      send_feedback(404, "ERROR: request type of msg is incorrect");
   }
 }
 
@@ -112,16 +110,17 @@ void action_handler(Action action)
   // TODO: check if profile_id is registered => if not: send ERROR msg
   // use corresponding driver function
   switch(action.which_driver){
+    
     case Action_a_digital_generic_tag:
       // call action function of digital_generic driver
       run_digital_generic(action.profile_id, action.driver.a_digital_generic);
-      // send confirmation
-      send_msg(action.profile_id); //, "led possibly registered");
       break;
+
     case Action_a_uart_ttl_generic_tag:
       //call action function of generic UART TTL driver
       run_uart_ttl_generic(action.profile_id, action.driver.a_uart_ttl_generic);
       break;
+
     default:
       // ERROR: no driver functions definded for specified registration
       break;
@@ -141,24 +140,26 @@ void registration_handler(Registration registration)
   
   // use corresponding driver function
   switch(registration.which_driver){
+
     case Registration_r_digital_generic_tag:
-      // call initialization function of digital_generic driver
+      // call initialization function
       init_digital_generic( registration.profile_id, registration.driver.r_digital_generic);
       // send confirmation if not in setup phase
       if(!setup_flag)
-        // TODO: send better feedback message
-        send_msg(registration.profile_id); //, "led possibly registered");
+        send_feedback(registration.profile_id, "LED is inizialized");
       break;
+
     case Registration_r_uart_ttl_generic_tag:
       //call initialization function
       init_uart_ttl_generic( registration.profile_id, registration.driver.r_uart_ttl_generic);
       // send confirmation if not in setup phase
       if(!setup_flag)
-        // TODO: send better feedback message
-        send_msg(registration.profile_id); //, "led possibly registered");
+        send_feedback(registration.profile_id, "UART TTL is initialized");
       break;
+
     default:
       // ERROR: no driver functions definded for specified registration
+      send_feedback(404, "ERROR: no driver functions definded for specified registration");
       break;
   }
 
@@ -166,22 +167,4 @@ void registration_handler(Registration registration)
   // 4. use config manager to save new entry in config-file (1. in struct, 2. save in SD card)
 
 
-}
-
-/**************************************************************************/
-/*
-    Function used to send feedback to the gateway 
-    TODO:
-    => needs to be updated to be able to handle string fields
-    => should be used for all feedbacks (Polling feedback + Event feedback)
-    => better name for function
-*/ 
-bool send_msg(uint32_t profile_id) //, String msg)
-{
-  Feedback feedback = {};
-  feedback.profile_id = profile_id;
-  //feedback.message = msg;
-  bool res = pb_encode(&pb_out, Feedback_fields, &feedback);
-  Serial.write(TERMINATOR);
-  return res;
 }

@@ -27,9 +27,12 @@ class ControllerPacketHandler(serial.threaded.Packetizer):
     """Callback for received packet"""
     def handle_packet(self, packet):
         feedback = line_protocol_pb2.Feedback()
+        #s = str(packet, 'utf-8')
         feedback.ParseFromString(packet)
-        #logging.info(">> asset_id: %d, message: %s", feedback.asset_id, feedback.message)
-        logging.info(">> received feedback with profile_id: %d", feedback.profile_id)
+        logging.info(">> profile_id: %d, message: %s", feedback.profile_id, feedback.message)
+        # print entire msg for debugging
+        #print(feedback.__str__())
+
         # if correct message received => led should be initialized
         global r_LED_reg_status
         global r_LED_on
