@@ -12,6 +12,8 @@ When starting the controller_test.py script the internal R_LED is initialized an
 % cd uArm-Controller && make example
 % python3 examples/controller_test.py <serial port of the controller>
 ```
+Use `make run` to build and upload firmware + run `controller_test.py` script
+
 # Automatic Driver Initialization
 To add a new Driver named <new_driver> run following command:
 ```

@@ -29,7 +29,7 @@ class ControllerPacketHandler(serial.threaded.Packetizer):
         feedback = line_protocol_pb2.Feedback()
         #s = str(packet, 'utf-8')
         feedback.ParseFromString(packet)
-        logging.info(">> profile_id: %d, message: %s", feedback.profile_id, feedback.message)
+        logging.info(">> testProfile_ID: %d, Message: %s", feedback.profile_id, feedback.message)
         # print entire msg for debugging
         #print(feedback.__str__())
 

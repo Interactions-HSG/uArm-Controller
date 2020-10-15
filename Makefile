@@ -24,4 +24,9 @@ add_driver:
 	sed 's/template_driver/$(driver_name)/' ./template_files/template_driver.h > ./include/drivers/$(driver_name).h
 	
 	#DRIVER_NAME= echo ${driver_name}| tr '[a-z]' '[A-Z]' 
-	
+
+# build + upload firmware => then run .py script
+run:
+	# TODO figure out how to save all open files
+	platformio run --target upload
+	python ./examples/controller_test.py COM3
