@@ -14,7 +14,6 @@ import logging
 import serial
 import serial.threaded
 
-#import heartbeat_pb2
 import line_protocol_pb2
 
 # variables
@@ -23,20 +22,25 @@ r_LED_reg_status = False
 r_LED_on = False
 r_LED_profile_id = 333
 
+""" registration parameters for UART """
+UART_profile_id = 555
+
+"""select test"""
+which_test = 'UARTA'
+
 class ControllerPacketHandler(serial.threaded.Packetizer):
     """Callback for received packet"""
     def handle_packet(self, packet):
         feedback = line_protocol_pb2.Feedback()
-        #s = str(packet, 'utf-8')
         feedback.ParseFromString(packet)
-        logging.info(">> testProfile_ID: %d, Message: %s", feedback.profile_id, feedback.message)
+        logging.info(">> Profile_ID: %d, Message: %s", feedback.profile_id, feedback.message)
         # print entire msg for debugging
         #print(feedback.__str__())
 
         # if correct message received => led should be initialized
         global r_LED_reg_status
         global r_LED_on
-        if(feedback.profile_id == r_LED_profile_id):
+        if(feedback.profile_id == r_LED_profile_id and not(r_LED_reg_status)):
             r_LED_reg_status = True
         # turn led off if already on
         if(r_LED_reg_status and r_LED_on):
@@ -84,14 +88,31 @@ if __name__ == '__main__':
     controller.start()
     time.sleep(3)
 
-    """ register R LED with generic digital request"""
-    req_R = line_protocol_pb2.Request()
-    req_R.registration.profile_id = r_LED_profile_id
-    req_R.registration.activation = line_protocol_pb2.POLLING
-    req_R.registration.r_digital_generic.pin = 2
-    req_R.registration.r_digital_generic.mode = line_protocol_pb2.OUTPUT
-    controller.send(req_R.SerializeToString())
-    logging.info("Red LED: registration sent")
+    if which_test == 'UARTR':
+        req_R = line_protocol_pb2.Request()
+        req_R.registration.profile_id = UART_profile_id
+        req_R.registration.activation = line_protocol_pb2.POLLING
+        req_R.registration.r_uart_ttl_generic.gcode_command = "test message for UART"
+        controller.send(req_R.SerializeToString())
+        logging.info("UART: registration sent")
+
+    if which_test == 'UARTA':
+        req_R = line_protocol_pb2.Request()
+        req_R.action.profile_id = UART_profile_id
+        req_R.action.a_uart_ttl_generic.command = "test message for UART"
+        controller.send(req_R.SerializeToString())
+        logging.info("UART: registration sent")
+
+    elif which_test == 'LED':
+        """ register R LED with generic digital request"""
+        req_R = line_protocol_pb2.Request()
+        req_R.registration.profile_id = r_LED_profile_id
+        req_R.registration.activation = line_protocol_pb2.POLLING
+        req_R.registration.r_digital_generic.pin = 2
+        req_R.registration.r_digital_generic.mode = line_protocol_pb2.OUTPUT
+        controller.send(req_R.SerializeToString())
+        logging.info("Red LED: registration sent")
+
 
     while(True):
    

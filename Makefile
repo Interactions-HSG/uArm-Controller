@@ -27,6 +27,6 @@ add_driver:
 
 # build + upload firmware => then run .py script
 run:
-	# TODO figure out how to save all open files
+	# TODO: figure out how to save all open files
 	platformio run --target upload
 	python ./examples/controller_test.py COM3

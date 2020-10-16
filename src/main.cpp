@@ -133,38 +133,41 @@ void action_handler(Action action)
 */ 
 void registration_handler(Registration registration)
 {
+  // switch for CRUD operations 
+
   // TODO: implement different activations (Polling, event-driven) 
   // 1. check if profile_id already registered in registrations-list:
-  //     yes => call profile_manager::delete(profile_id) (to delete old registered profile + clear all ports in config-list)
-  // 2. TODO: use driver manager to initialize profile => driver_manager.cpp with driver_registration() driver_action()
+  //     yes => send_feedback(404, "ERROR: profile already initialized")
   
-  // use corresponding driver function
+  // boolean to check whether initialization was successfull or not
+  bool reg_success = false;
+
+  /* initializing with corresponding driver function */ 
   switch(registration.which_driver){
 
     case Registration_r_digital_generic_tag:
       // call initialization function
-      init_digital_generic( registration.profile_id, registration.driver.r_digital_generic);
-      // send confirmation if not in setup phase
-      if(!setup_flag)
-        send_feedback(registration.profile_id, "LED is inizialized");
+      reg_success = init_digital_generic( registration.profile_id, registration.driver.r_digital_generic);    
       break;
 
     case Registration_r_uart_ttl_generic_tag:
       //call initialization function
-      init_uart_ttl_generic( registration.profile_id, registration.driver.r_uart_ttl_generic);
-      // send confirmation if not in setup phase
-      if(!setup_flag)
-        send_feedback(registration.profile_id, "UART TTL is initialized");
-      break;
+      reg_success = init_uart_ttl_generic( registration.profile_id, registration.driver.r_uart_ttl_generic);
 
     default:
       // ERROR: no driver functions definded for specified registration
       send_feedback(404, "ERROR: no driver functions definded for specified registration");
       break;
   }
-
-  // 3. check if interfaces already registered in config-file => if yes, remove old from config-file
-  // 4. use config manager to save new entry in config-file (1. in struct, 2. save in SD card)
-
-
+  
+  // TODO: save registration in registered profiles list if successful
+  
+  /* send feedback if not in re-initialization phase */
+  // send confirmation if registration successfull
+  if(!setup_flag && reg_success)
+    send_feedback(registration.profile_id, "Registration was successful");
+  // send ERROR if registration failed
+  else if(!setup_flag && !reg_success)
+    send_feedback(registration.profile_id, "ERROR: Registration failed");
+  
 }

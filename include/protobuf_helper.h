@@ -3,12 +3,6 @@
 
 #include "main.h"
 
-/*========================================================================*/
-/*                          PUBLIC VARIABLES                              */
-/*========================================================================*/
-
-
-
 
 /*========================================================================*/
 /*                          PUBLIC FUNCTIONS                              */
@@ -27,10 +21,11 @@ void protobuf_decode(Request *req);
 
 
 /**
-    @brief  Sends simple message to gateway  (for testing)
+    @brief  Sends simple message to gateway
     @param  profile_id: Profile_id
     @param  msg: feedback message for debugging purpose 
 */
 bool send_feedback(uint32_t profile_id, const char* msg);
+
 
 #endif
