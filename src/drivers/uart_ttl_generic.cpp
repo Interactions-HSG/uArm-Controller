@@ -33,7 +33,7 @@ void run_uart_ttl_generic(uint32_t profile_id, A_UART_TTL_Generic action){
     //for testing send message with command
     char str[37];
     snprintf(str,37,"DEBUG: %s",action.command);
-    send_feedback(600, str);
+    send_feedback(profile_id, str);
 
     
 }

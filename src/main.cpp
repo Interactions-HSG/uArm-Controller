@@ -153,10 +153,11 @@ void registration_handler(Registration registration)
     case Registration_r_uart_ttl_generic_tag:
       //call initialization function
       reg_success = init_uart_ttl_generic( registration.profile_id, registration.driver.r_uart_ttl_generic);
+      break;
 
     default:
       // ERROR: no driver functions definded for specified registration
-      send_feedback(404, "ERROR: no driver functions definded for specified registration");
+      send_feedback(registration.profile_id, "ERROR: no driver functions definded for specified registration");
       break;
   }
   
