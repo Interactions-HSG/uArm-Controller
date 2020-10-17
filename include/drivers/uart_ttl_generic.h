@@ -9,8 +9,9 @@
 /**************************************************************************/
 /*!
     @brief  Initialization function for uart_ttl_generic
+    @return boolean if initialization was successful or not
 */
-void init_uart_ttl_generic(uint32_t profile_id, R_UART_TTL_Generic profile);
+bool init_uart_ttl_generic(uint32_t profile_id, R_UART_TTL_Generic profile);
 /**************************************************************************/
 /*!
     @brief  Action function for uart_ttl_generic 

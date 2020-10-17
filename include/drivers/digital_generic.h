@@ -9,8 +9,9 @@
 /**************************************************************************/
 /*!
     @brief  Initialization function for generic driver for digital I/O
+    @return boolean if initialization was successful or not
 */
-void init_digital_generic(uint32_t profile_id, R_Digital_Generic profile);
+bool init_digital_generic(uint32_t profile_id, R_Digital_Generic profile);
 
 /**************************************************************************/
 /*!

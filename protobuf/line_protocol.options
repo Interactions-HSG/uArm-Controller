@@ -1,0 +1,5 @@
+// used to define options for specific fields
+// see https://jpa.kapsi.fi/nanopb/docs/reference.html#proto-file-options for a list of options
+
+// used to define string field as char[30] 
+A_UART_TTL_Generic.command     max_size:30

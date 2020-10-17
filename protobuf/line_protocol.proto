@@ -1,5 +1,6 @@
 syntax = "proto3";
 
+
 /*========================================================================*/
 /*                          ENUM DEFINTIONS                               */
 /*========================================================================*/
@@ -56,7 +57,7 @@ message Request {
 message Action{
 
   uint32 profile_id = 1;        // unique identification of profile
-     
+
   // Driver: which driver is used for the profile registration (R_ for Registration msg)
   oneof driver{
     A_Digital_Generic a_digital_generic = 3;
@@ -73,6 +74,7 @@ message Registration{
   
   uint32 profile_id = 1;        // unique identification of profile
   Activation activation = 2;    // which mode is used for the profile => polling, event-driven or combination of both
+  
   
   // Driver: which driver is used for the profile registration (R_ for Registration msg)
   oneof driver{
@@ -95,8 +97,7 @@ message A_Digital_Generic{
 }
 // Registration message for UART-ttl generic driver
 message A_UART_TTL_Generic{
-  string message = 1;
-  // TODO: add header + tail fields for message begin/end
+  string command = 1; 
 }
 
 /*========================================================================*/
