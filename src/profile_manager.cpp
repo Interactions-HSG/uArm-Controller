@@ -16,7 +16,8 @@
 /*========================================================================*/
 /*                  DEFINITIONS                                           */
 /*========================================================================*/
-// initialize all profile_ids with 0
+// initialize all profile_ids with 0 TODO: check if initialization is proper
+// index corresponds to profile_id
 Registration registered_profiles[256] = {0};
 
 /*========================================================================*/
@@ -25,7 +26,7 @@ Registration registered_profiles[256] = {0};
 
 /**************************************************************************/
 /*
-    TODO: Description
+    Store profile in registered profiles list
 */ 
 void store_profile(Registration registration){
 
@@ -37,14 +38,13 @@ void store_profile(Registration registration){
 
 /**************************************************************************/
 /*
-    TODO: Description
+    Delete corresponding profile field in registered profiles to avoid overlapping entries
 */ 
 void delete_profile(uint8_t profile_id){
     // check if the Profile_ID is already registered: 
-    if(registered_profiles[profile_id].profile_id == (uint32_t) profile_id){
-        // TODO: delete all old entries of config_list with Profile_ID
-        // delete in registered_profiles => set profile_id = 0
-        registered_profiles[profile_id].profile_id = 0;
+    if(registered_profiles[profile_id].profile_id != (uint32_t) 0){
+        // clear entry in registered profiles
+        memset(&registered_profiles[profile_id], 0, sizeof(Registration));
         // TODO: update SD file => delete profile 
     }
 }

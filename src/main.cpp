@@ -137,11 +137,6 @@ void action_handler(Action action)
 */ 
 void registration_handler(Registration registration)
 {
-  // switch for CRUD operations 
-
-  // TODO: implement different activations (Polling, event-driven) 
-  
-
   // clear old profile, if already registered
   delete_profile(registration.profile_id);
   
