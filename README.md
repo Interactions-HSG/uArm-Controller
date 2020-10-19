@@ -29,5 +29,5 @@ To add a new Driver named <new_driver> run following command:
 ```
 This will add following template files/sections:
 - <new_driver>.cpp to src/drivers
-- <new_driver>.h to include/drivers
+- <new_driver>.h to src/drivers
 - template switch cases inside main::action_hanlder(), main::registration_handler() => NOT IMPLEMENTED YET

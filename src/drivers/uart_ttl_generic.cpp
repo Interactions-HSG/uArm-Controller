@@ -1,4 +1,4 @@
-#include <drivers/uart_ttl_generic.h>
+#include "uart_ttl_generic.h"
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
 /*========================================================================*/
 /*                          FUNCTION DEFINITIONS                          */
@@ -12,10 +12,16 @@ bool init_uart_ttl_generic(uint32_t profile_id, R_UART_TTL_Generic profile)
 {
     if(profile.port == UART_Port_UART2){
         Serial2.begin(profile.baudrate);
+        while (!Serial2) { // wait until it's ready
+        ;
+        }
         return true;
     }
     else if(profile.port == UART_Port_UART3){
         Serial3.begin(profile.baudrate);
+        while (!Serial3) { // wait until it's ready
+        ;
+        }
         return true;
     }
     else 

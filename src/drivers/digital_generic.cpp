@@ -1,4 +1,4 @@
-#include <drivers/digital_generic.h>
+#include "digital_generic.h"
 
 /*========================================================================*/
 /*                          PUBLIC FUNCTIONS                              */

@@ -12,8 +12,8 @@ create_driver()
     
         # add <new_driver>.cpp to src/drivers
         sed "s/template_driver/$1/" ./tools/driver_init/templates/template_driver.cpp > ./src/drivers/$1.cpp
-        # add <new_driver>.h to include/drivers
-        sed "s/template_driver/$1/" ./tools/driver_init/templates/template_driver.h > ./include/drivers/$1.h
+        # add <new_driver>.h to src/drivers
+        sed "s/template_driver/$1/" ./tools/driver_init/templates/template_driver.h > ./src/drivers/$1.h
 
         #DRIVER_NAME= echo ${driver_name}| tr '[a-z]' '[A-Z]' 
         echo "Created driver: \"$1\""
