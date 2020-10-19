@@ -12,6 +12,15 @@
 
 #include <main.h>
 
+
+/*========================================================================*/
+/*                          PUBLIC VARIABLES                              */
+/*========================================================================*/
+
+// status if we should listen for an event
+bool listen_for_event = false;
+
+
 /*========================================================================*/
 /*                  PRIVATE DEFINITIONS                                   */
 /*========================================================================*/
@@ -19,6 +28,12 @@
 /* Variables */
 // status to indicate setup phase => no feedback after device initialization
 bool setup_flag = false;
+
+/* Definitions used for event handling */
+// array to store which profiles expect an event
+// => true means we expect an event for the corresponding profile
+bool profiles_with_event[256] = { 0 };
+
 
 /* Function prototypes */
 /**
@@ -37,6 +52,12 @@ void action_handler(Action action);
     @param  registration: Registration message
 */
 void registration_handler(Registration registration);
+
+/**
+    @brief  Handles possible events
+    @param  profile_id:
+*/
+void event_handler(uint32_t profile_id);
 
 
 /*========================================================================*/
@@ -66,8 +87,25 @@ void setup(void)
 
 void loop(void)
 { 
-  // process incoming message
+  /* handle events */
+  // check if we should listen for an event => used to speed-up loop
+  if(listen_for_event){ 
+    for (uint32_t profile_id = 0; profile_id < 256; profile_id++){
+      // call event_handler for all profiles that expect an event
+      if(profiles_with_event[profile_id]){
+        // event handler returns true if an event occurred
+        if(event_handler(profile_id))
+          // jump to event_occured label (don't handle incoming message)
+          goto event_occurred; 
+      }
+    }
+  }
+
+  // process incoming message (only if no event occured)
   request_handler();
+
+  // jump here if event occured
+event_occurred: 
   delay(1000);
 }
 
@@ -175,5 +213,15 @@ void registration_handler(Registration registration)
   else if(!setup_flag && !reg_success)
     send_feedback(registration.profile_id, "ERROR: Registration failed");
 
+}
+
+/**************************************************************************/
+/*
+    Event Handler: handles possible events
+*/ 
+void event_handler(uint32_t profile_id){
+
+  // get registration_tag from registered_profiles
+  
 }
 
