@@ -1,19 +1,22 @@
-#ifndef _UART_TTL_GENERIC_H_
-#define _UART_TTL_GENERIC_H_
+#ifndef _DIGITAL_GENERIC_H_
+#define _DIGITAL_GENERIC_H_
 
 #include "main.h"
+
 /*========================================================================*/
 /*                          PUBLIC FUNCTIONS                              */
 /*========================================================================*/
 
 /**************************************************************************/
 /*!
-    @brief  Initialization function for uart_ttl_generic
+    @brief  Initialization function for generic driver for digital I/O
+    @return boolean if initialization was successful or not
 */
-void init_uart_ttl_generic(uint32_t profile_id, R_UART_TTL_Generic profile);
+bool init_digital_generic(uint32_t profile_id, R_Digital_Generic profile);
+
 /**************************************************************************/
 /*!
-    @brief  Action function for uart_ttl_generic 
+    @brief  Action function for generic driver for digital I/O
 */
-void run_uart_ttl_generic(uint32_t profile_id, A_UART_TTL_Generic action);
+void run_digital_generic(uint32_t profile_id, A_Digital_Generic action);
 #endif

@@ -1,0 +1,7 @@
+// used to define options for specific fields
+// see https://jpa.kapsi.fi/nanopb/docs/reference.html#proto-file-options for a list of options
+
+// used to define string field as char[40] 
+// The longest Gcode command used for the uArm controller is "#n G1 X100 Y100 Z100 F1000\n" (28 char)
+// to have enough space we use a max. of 40 characters
+A_UART_TTL_Generic.command     max_size:40

@@ -1,39 +1,37 @@
 syntax = "proto3";
 
+
 /*========================================================================*/
 /*                          ENUM DEFINTIONS                               */
 /*========================================================================*/
-// Definition of triggering mode: 
-enum Activation {
-  POLLING = 0;  //=> activation only on request (default)
-  EVENT = 1;    //=> activation only on events 
-  COMPLEX = 2;  //=> combination of Polling and Event-driven mode
-}
+
 // Definition of digital pin modes
-enum Digital_Mode{
-  INPUT = 0; // (default)
+enum DigitalMode {
+  INPUT = 0;  // (default)
   OUTPUT = 1;
   INPUT_PULLUP = 2;
 }
+
 // Definition of digital pin output
-enum Digital_Output{
+enum DigitalOutput {
   LOW = 0; // (default)
   HIGH = 1;
 }
 
 // Definition of possible UART-TTL ports
-enum UART_Port{
+enum UartPort {
   UART2 = 0; // (default)
   UART3 = 1;
 }
 
+
 /*========================================================================*/
 /*                  MAIN MESSAGES: REQUEST + FEEDBACK                     */
 /*========================================================================*/
+
 // message sent from controller to gateway
-// TODO: has to be further designed
 message Feedback {
-  //int32 code = 1;
+  //int32 code = 1;   // maybe needed for future feedback message handling
   uint32 profile_id = 1;  // used to identify profile
   string message = 2;     // used for debugging messages
   bytes data = 3;
@@ -42,76 +40,75 @@ message Feedback {
 // message sent from gateway to controller
 message Request {
   // action or registration
-  oneof request_type{
-    Action  action = 1;
-    Registration  registration = 2;
+  oneof request_type {
+    Action action = 1;
+    Registration registration = 2;
+    //IDEA: used to delete profile in registered profiles 
+    // => problem: if profile gets deleted befor response of e.g. uArm arrives
+    //Deletion deletion = 3;
   }
 }
+
 
 /*========================================================================*/
 /*                  SUB MESSAGES: ACTION + REGISTRATION                   */
 /*========================================================================*/
 
 // Actions: request on existing/registered field devices
-message Action{
-
-  uint32 profile_id = 1;        // unique identification of profile
-     
+message Action {
+  uint32 profile_id = 1;  // unique identification of profile
   // Driver: which driver is used for the profile registration (R_ for Registration msg)
-  oneof driver{
-    A_Digital_Generic a_digital_generic = 3;
-    A_UART_TTL_Generic a_uart_ttl_generic = 4;
+  oneof driver {
+    A_Digital_Generic a_digital_generic = 2;
+    A_UART_TTL_Generic a_uart_ttl_generic = 3;
     //A_IIC_Generic a_iic_generic = 4;
     //A_Digital_Ultrasonic a_digital_ultrasonic = 5;
     // ...
   }
-
 }
 
 // Registration: request to register/initialize new field devices/ profiles
-message Registration{
-  
-  uint32 profile_id = 1;        // unique identification of profile
-  Activation activation = 2;    // which mode is used for the profile => polling, event-driven or combination of both
-  
+message Registration {
+  uint32 profile_id = 1;      // unique identification of profile
   // Driver: which driver is used for the profile registration (R_ for Registration msg)
-  oneof driver{
-    R_Digital_Generic r_digital_generic = 3;
-    R_UART_TTL_Generic r_uart_ttl_generic = 4;
+  oneof driver {
+    R_Digital_Generic r_digital_generic = 2;
+    R_UART_TTL_Generic r_uart_ttl_generic = 3;
     //R_IIC_Generic r_iic_generic = 4;
     //R_Digital_Ultrasonic r_digital_ultrasonic = 5;
     // ...
   }
 }
 
+
 /*========================================================================*/
 /*                  ACTION DRIVER MESSAGES                                */
 /*========================================================================*/
 
 // Registration message for Digital generic driver
-// TODO: how to implement inputmode?
-message A_Digital_Generic{
+message A_Digital_Generic {
   uint32 pin = 1;
-  Digital_Output output = 2;  
+  DigitalOutput output = 2;
 }
+
 // Registration message for UART-ttl generic driver
-message A_UART_TTL_Generic{
-  string message = 1;
-  // TODO: add header + tail fields for message begin/end
+message A_UART_TTL_Generic {
+  string command = 1;
 }
+
 
 /*========================================================================*/
 /*                  REGISTRATION DRIVER MESSAGES                          */
 /*========================================================================*/
 
-// Registration message for Digital generic driver
-message R_Digital_Generic{
+// Registration message for digital generic driver
+message R_Digital_Generic {
   uint32 pin = 1;
-  Digital_Mode mode = 2;
+  DigitalMode mode = 2;
 }
-// Registration message for UART-ttl generic driver
-message R_UART_TTL_Generic{
-  UART_Port port = 1;
+
+// Registration message for UART-TTL generic driver
+message R_UART_TTL_Generic {
+  UartPort port = 1;
   uint32 baudrate = 2;
-  // TODO: add header + tail fields for message begin/end
 }
