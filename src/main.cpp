@@ -133,12 +133,6 @@ void action_handler(Action action)
 */ 
 void registration_handler(Registration registration)
 {
-  // switch for CRUD operations 
-
-  // TODO: implement different activations (Polling, event-driven) 
-  // 1. check if profile_id already registered in registrations-list:
-  //     yes => send_feedback(404, "ERROR: profile already initialized")
-  
   // boolean to check whether initialization was successfull or not
   bool reg_success = false;
 
@@ -156,13 +150,13 @@ void registration_handler(Registration registration)
       break;
 
     default:
-      // ERROR: no driver functions definded for specified registration
-      send_feedback(registration.profile_id, "ERROR: no driver functions definded for specified registration");
+      /* ERROR: no driver functions definded for specified registration */
+      char str[100];
+      snprintf(str, 100, "ERROR: no driver functions definded for driver: %i", registration.which_driver);
+      send_feedback(registration.profile_id, str);
       break;
   }
-  
-  // TODO: save registration in registered profiles list if successful
-  
+
   /* send feedback if not in re-initialization phase */
   // send confirmation if registration successfull
   if(!setup_flag && reg_success)
@@ -170,5 +164,4 @@ void registration_handler(Registration registration)
   // send ERROR if registration failed
   else if(!setup_flag && !reg_success)
     send_feedback(registration.profile_id, "ERROR: Registration failed");
-  
 }

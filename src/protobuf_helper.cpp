@@ -68,7 +68,7 @@ void protobuf_decode(Request *req){
     ! callback only working for simple messages (not oneof)
 */ 
 bool send_feedback(uint32_t profile_id, const char* msg)
-{ 
+{
   // initiate Feedback msg
   Feedback feedback = {};
   
