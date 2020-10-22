@@ -1,6 +1,5 @@
 #include "digital_generic.h"
 
-
 /*========================================================================*/
 /*                          PUBLIC FUNCTIONS                              */
 /*========================================================================*/
@@ -11,26 +10,26 @@
 */
 bool init_digital_generic(uint32_t profile_id, R_Digital_Generic profile)
 {
-    // initialize pin 
-    pinMode((uint8_t) profile.pin, (uint8_t) profile.mode);
-    
+    // initialize pin
+    pinMode((uint8_t)profile.pin, (uint8_t)profile.mode);
+
     return true;
-    
 }
 
 /**************************************************************************/
 /*
     Write/(read) digital pin
 */
-void run_digital_generic(uint32_t profile_id, A_Digital_Generic action){
-    
+void run_digital_generic(uint32_t profile_id, A_Digital_Generic action)
+{
+
     // get pin from corresponding profile
     uint8_t pin = registered_profiles[profile_id].driver.r_digital_generic.pin;
 
     // maybe add dynamic mode (INPUT/OUTPUT) changes
-    digitalWrite((uint8_t) pin, (uint8_t) action.output);
+    digitalWrite((uint8_t)pin, (uint8_t)action.output);
 
     /* give feedback on action */
-    send_feedback(profile_id, "Action on digital pin");
-    
+    send_done(profile_id);
+    send_debug("Action on digital pin");
 }

@@ -4,6 +4,15 @@ syntax = "proto3";
 /*                          ENUM DEFINTIONS                               */
 /*========================================================================*/
 
+// Definition of feedback response codes
+enum ResponseCode {
+  DEBUG = 0; // (default)
+  ERROR = 1;
+  ACK = 2;  // used to acknowledge action (for non-blocking events)
+  DONE = 3; // used to give feedback without data
+  DATA = 4; // used for response messages with data
+}
+
 // Definition of digital pin modes
 enum DigitalMode {
   INPUT = 0; // (default)
@@ -29,10 +38,10 @@ enum UartPort {
 
 // message sent from controller to gateway
 message Feedback {
-  // int32 code = 1;   // maybe needed for future feedback message handling
-  uint32 profile_id = 1; // used to identify profile
-  string message = 2;    // used for debugging messages
-  bytes data = 3;
+  ResponseCode code = 1; // used for feedback message handling
+  uint32 profile_id = 2; // used to identify profile
+  string message = 3;    // used for debugging messages
+  bytes data = 4;        // holds all response data
 }
 
 // message sent from gateway to controller

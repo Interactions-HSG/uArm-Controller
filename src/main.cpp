@@ -16,9 +16,6 @@
 /*                          PUBLIC VARIABLES                              */
 /*========================================================================*/
 
-// status if we should listen for an event
-bool listen_for_event = false;
-
 /*========================================================================*/
 /*                  PRIVATE DEFINITIONS                                   */
 /*========================================================================*/
@@ -83,23 +80,19 @@ void setup(void)
 void loop(void)
 {
   /* handle events */
-  // check if we should listen for an event => used to speed-up loop
-  if (listen_for_event)
+  for (uint32_t profile_id = 0; profile_id < 256; profile_id++)
   {
-    for (uint32_t profile_id = 0; profile_id < 256; profile_id++)
+    // call event_handler for all profiles that expect an event
+    if (profiles_with_event[profile_id])
     {
-      // call event_handler for all profiles that expect an event
-      if (profiles_with_event[profile_id])
-      {
-        // event handler returns true if an event occurred
-        if (event_handler(profile_id))
-          // jump to event_occured label (don't handle incoming message)
-          goto event_occurred;
-      }
+      // event handler returns true if an event occurred
+      if (event_handler(profile_id))
+        // jump to event_occured label (don't handle incoming message)
+        goto event_occurred;
     }
   }
 
-  // process incoming message (only if no event occured)
+  /* process incoming message (only if no event occured)*/
   request_handler();
 
   // jump here if event occured
@@ -125,7 +118,6 @@ void request_handler()
 
     // decode the received protobuf message
     protobuf_decode(&req);
-    //send_feedback(200, "message received");
 
     // check if action or registration
     if (req.which_request_type == Request_action_tag)
@@ -137,8 +129,8 @@ void request_handler()
       registration_handler(req.request_type.registration);
     }
     else
-      // ERROR: request type of msg is incorrect
-      send_feedback(404, "ERROR: request type of msg is incorrect");
+      // ERROR: request type of msg is incorrect (404 as profile id is unknown)
+      send_error(404, "ERROR: request type of msg is incorrect");
   }
 }
 
@@ -184,7 +176,6 @@ void registration_handler(Registration registration)
   /* initializing with corresponding driver function */
   switch (registration.which_driver)
   {
-
   case Registration_r_digital_generic_tag:
     // call initialization function
     reg_success = init_digital_generic(registration.profile_id, registration.driver.r_digital_generic);
@@ -198,8 +189,8 @@ void registration_handler(Registration registration)
   default:
     /* ERROR: no driver functions definded for specified registration */
     char str[100];
-    snprintf(str, 100, "ERROR: no driver functions definded for driver: %i", registration.which_driver);
-    send_feedback(registration.profile_id, str);
+    snprintf(str, 100, "No driver functions definded for driver: %i", registration.which_driver);
+    send_error(registration.profile_id, str);
     break;
   }
 
@@ -207,21 +198,42 @@ void registration_handler(Registration registration)
   // send confirmation if registration successfull
   if (!setup_flag && reg_success)
   {
-    send_feedback(registration.profile_id, "Registration was successful");
+    send_done(registration.profile_id);
+    send_debug("Registration was successful");
     // use profile manager to save new registration on registered_profiles + on SD card
     store_profile(registration);
   }
   // send ERROR if registration failed
   else if (!setup_flag && !reg_success)
-    send_feedback(registration.profile_id, "ERROR: Registration failed");
+    send_error(registration.profile_id, "Registration failed");
 }
 
 /**************************************************************************/
 /*
-    Event Handler: handles possible events
+    Event Handler: handles possible events.
+
+    Only for drivers that support event handling!
+    TODO: what happens if profile gets updated while an event of this profile is expected?
 */
 bool event_handler(uint32_t profile_id)
 {
+  // status if event occured for specific profile
+  bool profile_event_occured = false;
+
+  /* call the corresponing driver function for event handling*/
   // get registration_tag from registered_profiles
-  ;
+  switch (registered_profiles[profile_id].which_driver)
+  {
+  case Registration_r_uart_ttl_generic_tag:
+    //call event handling function for uart_ttl_generic driver
+    profile_event_occured = event_uart_ttl_generic(profile_id);
+    break;
+
+  default:
+    /* ERROR: no event driver functions definded for specified registration */
+    char str[100];
+    snprintf(str, 100, "No event driver functions definded for driver: %i", registered_profiles[profile_id].which_driver);
+    send_error(profile_id, str);
+    break;
+  }
 }

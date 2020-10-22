@@ -3,7 +3,6 @@
 
 #include "main.h"
 
-
 /*========================================================================*/
 /*                          PUBLIC FUNCTIONS                              */
 /*========================================================================*/
@@ -19,13 +18,36 @@ void protobuf_init();
 */
 void protobuf_decode(Request *req);
 
+/**
+    @brief  Sends simple debug message to the gateway
+    @param  msg: feedback message for debugging purpose 
+*/
+bool send_debug(const char *msg);
 
 /**
-    @brief  Sends simple message to gateway
+    @brief  Sends simple error message to the gateway
     @param  profile_id: Profile_id
     @param  msg: feedback message for debugging purpose 
 */
-bool send_feedback(uint32_t profile_id, const char* msg);
+bool send_error(uint32_t profile_id, const char *msg);
 
+/**
+    @brief  Sends simple acknowledgement message to the gateway
+    @param  profile_id: Profile_id
+*/
+bool send_ack(uint32_t profile_id);
+
+/**
+    @brief  Sends simple DONE message to the gateway
+    @param  profile_id: Profile_id
+*/
+bool send_done(uint32_t profile_id);
+
+/**
+    @brief  Sends data message to the gateway
+    @param  profile_id: Profile_id
+    @param  data: void pointer to raw data
+*/
+bool send_data(uint32_t profile_id, void *data);
 
 #endif

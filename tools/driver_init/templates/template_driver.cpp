@@ -8,7 +8,7 @@
 /*!
     TODO: Description of initialization function for template_driver
 */
-void init_template_driver(uint32_t profile_id, R_Template_Driver profile)
+bool init_template_driver(uint32_t profile_id, R_Template_Driver profile)
 {
     // TODO: implement initialization
 }
@@ -17,8 +17,8 @@ void init_template_driver(uint32_t profile_id, R_Template_Driver profile)
 /*!
     TODO: Description of initialization function for template_driver
 */
-void run_template_driver(uint32_t profile_id, A_Template_Driver action){
-    
+void run_template_driver(uint32_t profile_id, A_Template_Driver action)
+{
+
     // TODO: implement action function
-    
 }
