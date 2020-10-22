@@ -12,14 +12,22 @@ When starting the controller_test.py script the internal R_LED is initialized an
 % cd uArm-Controller && make example
 % python3 examples/controller_test.py <serial port of the controller>
 ```
-Use `make run` to build and upload firmware + run `controller_test.py` script
 
-# Automatic Driver Initialization
+# Tools
+
+## Complete Execution
+To automatically build + upload the MCU firmware and then run the script `simple_gateway.py`, use the following line:
+```
+ ./tools/run_controller.sh
+```
+(The generation of the nanopb files is not included.)
+
+## Automatic Driver Initialization
 To add a new Driver named <new_driver> run following command:
 ```
-% cd uArm-Controller && make add_driver driver_name=<new_driver>
+./tools/driver_init/create_driver.sh <new_driver>
 ```
 This will add following template files/sections:
 - <new_driver>.cpp to src/drivers
-- <new_driver>.h to include/drivers
+- <new_driver>.h to src/drivers
 - template switch cases inside main::action_hanlder(), main::registration_handler() => NOT IMPLEMENTED YET
