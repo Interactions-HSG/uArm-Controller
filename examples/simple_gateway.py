@@ -42,6 +42,15 @@ class ProfileState(Enum):
     BUSY = 4
 
 
+class ProfileManager(list):
+    """ Class to manage registered/created profiles. """
+
+    def get_profile(self, profile_id):
+        for profile in self:
+            if profile.profile_id == profile_id:
+                return profile
+
+
 class Profile:
     """Parent class for profiles.
 
@@ -55,6 +64,11 @@ class Profile:
 
     def __init__(self, profile_id):
         self.profile_id = profile_id
+        # save profile in list and delete profile with same id
+        profile = profiles.get_profile(profile_id)
+        if profile is not None:
+            profiles.remove(profile)
+        profiles.append(self)
 
     def register_wait(self):
         """ Function to wait until profile is registered """
@@ -67,7 +81,6 @@ class Profile:
         # TODO: implement timeout?
         while self.profile_state == ProfileState.WAIT:
             time.sleep(0.1)
-            logging.debug("...waiting...")
 
 
 class DigitalGeneric(Profile):
@@ -175,31 +188,27 @@ class ControllerPacketHandler(serial.threaded.Packetizer):
                 ">> Profile: %i %s", feedback.profile_id, repr(feedback.message)
             )
         elif feedback.code == line_protocol_pb2.ACK:
-            for profile in profiles:
-                if profile.profile_id == feedback.profile_id:
-                    profile.profile_state = ProfileState.BUSY
-                    logging.info(">> ACK for profile: %s received", feedback.profile_id)
-                    break
+            profile = profiles.get_profile(feedback.profile_id)
+            profile.profile_state = ProfileState.BUSY
+            logging.info(">> ACK for profile: %s received", feedback.profile_id)
         elif feedback.code == line_protocol_pb2.DONE:
             logging.debug("DONE for %i", feedback.profile_id)
-            for profile in profiles:
-                if profile.profile_id == feedback.profile_id:
-                    if profile.profile_state == ProfileState.UNREG:
-                        """ DONE for registration """
-                        profile.profile_state = ProfileState.IDLE
-                        logging.info(
-                            ">> Registration DONE for profile: %s received",
-                            feedback.profile_id,
-                        )
-                    elif profile.profile_state == ProfileState.WAIT:
-                        """ DONE for last action """
-                        profile.profile_state = ProfileState.IDLE
-                        # TODO: handle DONE for last action
-                        logging.info(
-                            ">> Activation ACK for profile: %s received",
-                            feedback.profile_id,
-                        )
-                    break
+            profile = profiles.get_profile(feedback.profile_id)
+            if profile.profile_state == ProfileState.UNREG:
+                """ DONE for registration """
+                profile.profile_state = ProfileState.IDLE
+                logging.info(
+                    ">> Registration DONE for profile: %s received",
+                    feedback.profile_id,
+                )
+            elif profile.profile_state == ProfileState.WAIT:
+                """ DONE for last action """
+                profile.profile_state = ProfileState.IDLE
+                # TODO: handle DONE for last action
+                logging.info(
+                    ">> Activation ACK for profile: %s received",
+                    feedback.profile_id,
+                )
         elif feedback.code == line_protocol_pb2.DATA:
             logging.info(">> DATA for profile: %s received", feedback.profile_id)
             # TODO: handle incoming data messages
@@ -228,23 +237,23 @@ class Controller(serial.threaded.ReaderThread):
 
 """" ---------- Profile creations ---------- """
 
-# list of all profiles
-profiles = []
+# create list of all profiles
+profiles = ProfileManager()
+
+# define used Profile IDs (div: green will change to blue)
+red_LED_profile_id = 1
+div_LED_profile_id = 2
+uArm1_profile_id = 10
+uArm2_profile_id = 11
 
 # create profile for red LED
-red_LED_profile = DigitalGeneric(1, 2, line_protocol_pb2.OUTPUT)
-profiles.append(red_LED_profile)
+DigitalGeneric(red_LED_profile_id, 2, line_protocol_pb2.OUTPUT)
 # create profile for green LED
-green_LED_profile = DigitalGeneric(2, 3, line_protocol_pb2.OUTPUT)
-profiles.append(green_LED_profile)
-# create profile for blue LED (same ID as green!)
-blue_LED_profile = DigitalGeneric(2, 5, line_protocol_pb2.OUTPUT)
+DigitalGeneric(div_LED_profile_id, 3, line_protocol_pb2.OUTPUT)
 # create profile for UART2-TTL: uArm1
-uArm1_profile = UartTTLGeneric(10, line_protocol_pb2.UART2, BAUDRATE)
-profiles.append(uArm1_profile)
+UartTTLGeneric(uArm1_profile_id, line_protocol_pb2.UART2, BAUDRATE)
 # create profile for UART3-TTL: uArm2
-uArm2_profile = UartTTLGeneric(11, line_protocol_pb2.UART3, BAUDRATE)
-profiles.append(uArm2_profile)
+UartTTLGeneric(uArm2_profile_id, line_protocol_pb2.UART3, BAUDRATE)
 
 
 """" ---------- Main ---------- """
@@ -263,37 +272,39 @@ if __name__ == "__main__":
     counter = 0
 
     while True:
+
         """ Test updating profile """
-        # if counter == 2:
-        #     blue_LED_profile.register_profile()
-        # elif counter == 9:
-        #     green_LED_profile.register_profile()
-        # counter = (counter + 1) % 10
-        # TODO: not working => profiles[] must be updated!
+        if counter == 4:
+            # create profile for blue LED (same ID as green!)
+            profile = DigitalGeneric(div_LED_profile_id, 5, line_protocol_pb2.OUTPUT)
+            profile.register_profile()
+        elif counter == 9:
+            # create profile for green LED (same ID as blue => overwritten!)
+            profile = DigitalGeneric(div_LED_profile_id, 3, line_protocol_pb2.OUTPUT)
+            profile.register_profile()
+        counter = (counter + 1) % 10
 
         """ toggle red LED """
-        if red_LED_profile.profile_state == ProfileState.IDLE:
-            if red_LED_profile.pin_state:
+        profile = profiles.get_profile(red_LED_profile_id)
+        if profile.profile_state == ProfileState.IDLE:
+            if profile.pin_state:
                 """ send action to turn led off"""
-                red_LED_profile.write_digital(line_protocol_pb2.LOW)
+                profile.write_digital(line_protocol_pb2.LOW)
             else:
                 """ send action to turn led on"""
-                red_LED_profile.write_digital(line_protocol_pb2.HIGH)
+                profile.write_digital(line_protocol_pb2.HIGH)
 
-        """ toggle green LED """
-        if green_LED_profile.profile_state == ProfileState.IDLE:
-            if green_LED_profile.pin_state:
+        """ toggle green/blue LED """
+        profile = profiles.get_profile(div_LED_profile_id)
+        if profile.profile_state == ProfileState.IDLE:
+            if profile.pin_state:
                 """ send action to turn led off"""
-                green_LED_profile.write_digital(line_protocol_pb2.LOW)
+                profile.write_digital(line_protocol_pb2.LOW)
             else:
                 """ send action to turn led on"""
-                green_LED_profile.write_digital(line_protocol_pb2.HIGH)
+                profile.write_digital(line_protocol_pb2.HIGH)
 
         """ send gcode command to uArm1 """
-        if uArm1_profile.profile_state == ProfileState.IDLE:
-            uArm1_profile.send_command("G0 X180 Y0 Z160 F500\n")
-
-        # """ send gcode command to uArm2 """
-        # if uArm2_profile.is_registered:
-        #    uArm2_profile.send_command("G0 X100 Y100 Z120 F500\n")
-        # time.sleep(1)
+        profile = profiles.get_profile(uArm1_profile_id)
+        if profile.profile_state == ProfileState.IDLE:
+            profile.send_command("G0 X180 Y0 Z160 F500\n")
