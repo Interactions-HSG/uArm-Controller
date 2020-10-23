@@ -22,11 +22,19 @@
 pb_istream_s pb_in;
 pb_ostream_s pb_out;
 
+// length of data: number of bytes
+uint32_t data_length;
+
 /* Function prototypes */
 /**
     @brief  Callback function for string type encoding
 */
 bool encode_string(pb_ostream_t *stream, const pb_field_t *field, void *const *arg);
+
+/**
+    @brief  Callback function for bytes type encoding
+*/
+bool encode_bytes(pb_ostream_t *stream, const pb_field_t *field, void *const *arg);
 
 /*========================================================================*/
 /*                          PUBLIC FUNCTIONS                              */
@@ -154,17 +162,20 @@ bool send_done(uint32_t profile_id)
     Function used to send a data message to the gateway.
     IDEA: include what type/ size of data
 */
-bool send_data(uint32_t profile_id, void *data)
+bool send_data(uint32_t profile_id, void *data, uint32_t length)
 {
     // initiate Feedback msg
     Feedback feedback = {};
+
+    // update data length for data field [bytes]
+    data_length = length;
 
     /* add feedback fields */
     feedback.code = ResponseCode_DATA;
     feedback.profile_id = profile_id;
     // TODO: implement data [bytes] field
-    //    feedback.data.arg = data;
-    //    feedback.data.funcs.encode = &encode_data
+    feedback.data.arg = data;
+    feedback.data.funcs.encode = &encode_bytes;
     // encode protobuf message
     bool res = pb_encode(&pb_out, Feedback_fields, &feedback);
     // send termination
@@ -178,7 +189,7 @@ bool send_data(uint32_t profile_id, void *data)
 
 /**************************************************************************/
 /*
-    Callback funtion for encoding string types (only working for simply messages, non-oneof)
+    Callback funtion for encoding string types (only working for simple messages, non-oneof)
 */
 bool encode_string(pb_ostream_t *stream, const pb_field_t *field, void *const *arg)
 {
@@ -188,4 +199,18 @@ bool encode_string(pb_ostream_t *stream, const pb_field_t *field, void *const *a
         return false;
 
     return pb_encode_string(stream, (uint8_t *)str, strlen(str));
+}
+
+/**************************************************************************/
+/*
+    Callback funtion for encoding bytes types (only working for simple messages, non-oneof)
+*/
+bool encode_bytes(pb_ostream_t *stream, const pb_field_t *field, void *const *arg)
+{
+    void *const *msg = (void *const *)*arg;
+    const byte *data = (const byte *)msg;
+    if (!pb_encode_tag_for_field(stream, field))
+        return false;
+
+    return pb_encode_string(stream, (uint8_t *)data, data_length);
 }

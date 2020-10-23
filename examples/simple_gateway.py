@@ -113,7 +113,7 @@ class DigitalGeneric(Profile):
         super().register_wait()
 
     def write_digital(self, output):
-        """ write digital pin to HIGH/LOW """
+        """ Write digital pin to HIGH/LOW """
         req = line_protocol_pb2.Request()
         # pylint: disable=no-member
         req.action.profile_id = self.profile_id
@@ -129,6 +129,46 @@ class DigitalGeneric(Profile):
             self.pin_state = False  # IDEA: do this on receiving ack
         self.profile_state = ProfileState.WAIT
         super().action_wait()
+
+    def read_digital(self):
+        """ Read digital pin """
+        req = line_protocol_pb2.Request()
+        # pylint: disable=no-member
+        req.action.profile_id = self.profile_id
+        controller.send(req.SerializeToString())
+        logging.info(" Digital pin action: Read pin (Profile: %i)", self.profile_id)
+        self.profile_state = ProfileState.WAIT
+        super().action_wait()
+
+    def read_event_digital(self, trigger_value):
+        """Start event listening for digital pin.
+
+        Args:
+            trigger_value (HIGH/LOW): used to set value on which event will be triggered
+        """
+        req = line_protocol_pb2.Request()
+        # pylint: disable=no-member
+        req.action.profile_id = self.profile_id
+        req.action.a_digital_generic.output = trigger_value
+        req.action.a_digital_generic.event_triggered = True
+        controller.send(req.SerializeToString())
+        logging.info(
+            " Digital pin action: Start event listening (Profile: %i)", self.profile_id
+        )
+        self.profile_state = ProfileState.WAIT
+        super().action_wait()
+
+    def data_handler(self, data):
+        """Handles incoming data from actions or events.
+
+        Args:
+            data (byte): 1:LOW or 2:HIGH (added one to avoid empty byte)
+        """
+        logging.info(
+            ">> Digital DATA: received state: %i (Profile: %i)",
+            ord(data) - 1,
+            self.profile_id,
+        )
 
 
 class UartTTLGeneric(Profile):
@@ -206,12 +246,31 @@ class ControllerPacketHandler(serial.threaded.Packetizer):
                 profile.profile_state = ProfileState.IDLE
                 # TODO: handle DONE for last action
                 logging.info(
-                    ">> Activation ACK for profile: %s received",
+                    ">> Action DONE for profile: %s received",
+                    feedback.profile_id,
+                )
+            elif profile.profile_state == ProfileState.BUSY:
+                """ DONE for received event """
+                profile.profile_state = ProfileState.IDLE
+                # TODO: handle DONE for events
+                logging.info(
+                    ">> Event DONE for profile : %s received",
                     feedback.profile_id,
                 )
         elif feedback.code == line_protocol_pb2.DATA:
-            logging.info(">> DATA for profile: %s received", feedback.profile_id)
-            # TODO: handle incoming data messages
+            profile = profiles.get_profile(feedback.profile_id)
+            if profile.profile_state == ProfileState.WAIT:
+                profile.profile_state = ProfileState.IDLE
+                logging.info(
+                    ">> Action DATA for profile: %s received", feedback.profile_id
+                )
+                profile.data_handler(feedback.data)
+            elif profile.profile_state == ProfileState.BUSY:
+                profile.profile_state = ProfileState.IDLE
+                logging.info(
+                    ">> Event DATA for profile: %s received", feedback.profile_id
+                )
+                profile.data_handler(feedback.data)
 
 
 class Controller(serial.threaded.ReaderThread):
@@ -243,6 +302,7 @@ profiles = ProfileManager()
 # define used Profile IDs (div: green will change to blue)
 red_LED_profile_id = 1
 div_LED_profile_id = 2
+button_A_profile_id = 5
 uArm1_profile_id = 10
 uArm2_profile_id = 11
 
@@ -250,6 +310,8 @@ uArm2_profile_id = 11
 DigitalGeneric(red_LED_profile_id, 2, line_protocol_pb2.OUTPUT)
 # create profile for green LED
 DigitalGeneric(div_LED_profile_id, 3, line_protocol_pb2.OUTPUT)
+# create profile for button A (event triggered)
+DigitalGeneric(button_A_profile_id, 47, line_protocol_pb2.INPUT_PULLUP)
 # create profile for UART2-TTL: uArm1
 UartTTLGeneric(uArm1_profile_id, line_protocol_pb2.UART2, BAUDRATE)
 # create profile for UART3-TTL: uArm2
@@ -272,6 +334,11 @@ if __name__ == "__main__":
     counter = 0
 
     while True:
+
+        """ Test for event handling: call event for button A """
+        profile = profiles.get_profile(button_A_profile_id)
+        if profile.profile_state == ProfileState.IDLE:
+            profile.read_event_digital(line_protocol_pb2.HIGH)
 
         """ Test updating profile """
         if counter == 4:

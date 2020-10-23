@@ -47,7 +47,8 @@ bool send_done(uint32_t profile_id);
     @brief  Sends data message to the gateway
     @param  profile_id: Profile_id
     @param  data: void pointer to raw data
+    @param  length: number of bytes used to store data
 */
-bool send_data(uint32_t profile_id, void *data);
+bool send_data(uint32_t profile_id, void *data, uint32_t length);
 
 #endif

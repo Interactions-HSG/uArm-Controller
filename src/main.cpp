@@ -13,21 +13,21 @@
 #include <main.h>
 
 /*========================================================================*/
-/*                          PUBLIC VARIABLES                              */
+/*                    PUBLIC DEFINITIONS                                  */
 /*========================================================================*/
-
-/*========================================================================*/
-/*                  PRIVATE DEFINITIONS                                   */
-/*========================================================================*/
-
-/* Variables */
-// status to indicate setup phase => no feedback after device initialization
-bool setup_flag = false;
 
 /* Definitions used for event handling */
 // array to store which profiles expect an event
 // => true means we expect an event for the corresponding profile
 bool profiles_with_event[256] = {0};
+
+/*========================================================================*/
+/*                    PRIVATE DEFINITIONS                                 */
+/*========================================================================*/
+
+/* Variables */
+// status to indicate setup phase => no feedback after device initialization
+bool setup_flag = false;
 
 /* Function prototypes */
 /**
@@ -54,7 +54,7 @@ void registration_handler(Registration registration);
 bool event_handler(uint32_t profile_id);
 
 /*========================================================================*/
-/*                  INITIALIZATION                                        */
+/*                    INITIALIZATION                                      */
 /*========================================================================*/
 
 void setup(void)
@@ -212,8 +212,7 @@ void registration_handler(Registration registration)
 /*
     Event Handler: handles possible events.
 
-    Only for drivers that support event handling!
-    TODO: what happens if profile gets updated while an event of this profile is expected?
+    (Only for drivers that support event handling!)
 */
 bool event_handler(uint32_t profile_id)
 {
@@ -224,6 +223,11 @@ bool event_handler(uint32_t profile_id)
   // get registration_tag from registered_profiles
   switch (registered_profiles[profile_id].which_driver)
   {
+  case Registration_r_digital_generic_tag:
+    //call event handling function for digital_generic driver
+    profile_event_occured = event_digital_generic(profile_id);
+    break;
+
   case Registration_r_uart_ttl_generic_tag:
     //call event handling function for uart_ttl_generic driver
     profile_event_occured = event_uart_ttl_generic(profile_id);
@@ -236,4 +240,5 @@ bool event_handler(uint32_t profile_id)
     send_error(profile_id, str);
     break;
   }
+  return profile_event_occured;
 }

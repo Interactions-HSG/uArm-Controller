@@ -15,6 +15,11 @@
 /*                          PUBLIC VARIABLES                              */
 /*========================================================================*/
 
+/* Decleration of the event state list */
+// array to store which profiles expect an event
+// => true means we expect an event for the corresponding profile
+extern bool profiles_with_event[256];
+
 /*========================================================================*/
 /*                          PUBLIC FUNCTIONS                              */
 /*========================================================================*/
