@@ -50,9 +50,6 @@ message Request {
   oneof request_type {
     Action action = 1;
     Registration registration = 2;
-    // IDEA: used to delete profile in registered profiles
-    // => problem: if profile gets deleted befor response of e.g. uArm arrives
-    // Deletion deletion = 3;
   }
 }
 
@@ -68,9 +65,11 @@ message Action {
   oneof driver {
     A_Digital_Generic a_digital_generic = 2;
     A_UART_TTL_Generic a_uart_ttl_generic = 3;
-    // A_IIC_Generic a_iic_generic = 4;
-    // A_Digital_Ultrasonic a_digital_ultrasonic = 5;
-    // ...
+    A_Color_Sensor a_color_sensor = 4;
+    A_Ultrasonic_Sensor a_ultrasonic_sensor = 5;
+    A_Step_Lowlevel a_step_lowlevel = 6;
+    // ADI-PROTO-Oneof-Action: Label for automatic driver initialization (Do not
+    // move!)
   }
 }
 
@@ -82,9 +81,11 @@ message Registration {
   oneof driver {
     R_Digital_Generic r_digital_generic = 2;
     R_UART_TTL_Generic r_uart_ttl_generic = 3;
-    // R_IIC_Generic r_iic_generic = 4;
-    // R_Digital_Ultrasonic r_digital_ultrasonic = 5;
-    // ...
+    R_Color_Sensor r_color_sensor = 4;
+    R_Ultrasonic_Sensor r_ultrasonic_sensor = 5;
+    R_Step_Lowlevel r_step_lowlevel = 6;
+    // ADI-PROTO-Oneof-Reg: Label for automatic driver initialization (Do not
+    // move!)
   }
 }
 
@@ -101,6 +102,22 @@ message A_Digital_Generic {
 // Action message for UART-ttl generic driver
 message A_UART_TTL_Generic { string command = 1; }
 
+// Action message for Color_Sensor driver
+message A_Color_Sensor {
+  // TODO: define the action message structure
+}
+
+// Action message for Ultrasonic_Sensor driver
+message A_Ultrasonic_Sensor {
+  // TODO: define the action message structure
+}
+
+// Action message for Step_Lowlevel driver
+message A_Step_Lowlevel {
+  // TODO: define the action message structure
+}
+// ADI-PROTO-Action: Label for automatic driver initialization (Do not move!)
+
 /*========================================================================*/
 /*                  REGISTRATION DRIVER MESSAGES                          */
 /*========================================================================*/
@@ -116,3 +133,20 @@ message R_UART_TTL_Generic {
   UartPort port = 1;
   uint32 baudrate = 2;
 }
+
+// Registration message for Color_Sensor driver
+message R_Color_Sensor {
+  // TODO: define the registration message structure
+}
+
+// Registration message for Ultrasonic_Sensor driver
+message R_Ultrasonic_Sensor {
+  // TODO: define the registration message structure
+}
+
+// Registration message for Step_Lowlevel driver
+message R_Step_Lowlevel {
+  // TODO: define the registration message structure
+}
+// ADI-PROTO-Reg: Label for automatic driver initialization (Do not move!)
+// END: needed for proper driver initialization

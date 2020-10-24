@@ -7,7 +7,6 @@ To compile the proto files, you need to install [protoc](https://grpc.io/docs/pr
 
 # Example: Controller Test
 A simple test application on uArm Controller for testing the line protocol + device initialization.
-When starting the controller_test.py script the internal R_LED is initialized and periodically activated.
 ```
 % cd uArm-Controller && make example
 % python3 examples/controller_test.py <serial port of the controller>
@@ -28,6 +27,9 @@ To add a new Driver named <new_driver> run following command:
 ./tools/driver_init/create_driver.sh <new_driver>
 ```
 This will add following template files/sections:
-- <new_driver>.cpp to src/drivers
-- <new_driver>.h to src/drivers
-- template switch cases inside main::action_hanlder(), main::registration_handler() => NOT IMPLEMENTED YET
+- `<new_driver>.cpp` to src/drivers
+- `<new_driver>.h` to src/drivers
+- switch cases inside `main.cpp`: `action_hanlder()` and `registration_handler()`
+- include line in `main.h`
+- message skeleton in `line_protocol.proto`
+- class skeleton in `simple_gateway.py`

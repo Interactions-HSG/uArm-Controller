@@ -155,6 +155,22 @@ void action_handler(Action action)
     run_uart_ttl_generic(action.profile_id, action.driver.a_uart_ttl_generic);
     break;
 
+  case Action_a_color_sensor_tag:
+    // call action function of color_sensor driver
+    run_color_sensor(action.profile_id, action.driver.a_color_sensor);
+    break;
+
+  case Action_a_ultrasonic_sensor_tag:
+    // call action function of ultrasonic_sensor driver
+    run_ultrasonic_sensor(action.profile_id, action.driver.a_ultrasonic_sensor);
+    break;
+
+  case Action_a_step_lowlevel_tag:
+    // call action function of step_lowlevel driver
+    run_step_lowlevel(action.profile_id, action.driver.a_step_lowlevel);
+    break;
+    // ADI-MAIN-Action: Label for automatic driver initialization (Do not move!)
+
   default:
     // ERROR: no driver functions definded for specified registration
     break;
@@ -186,6 +202,22 @@ void registration_handler(Registration registration)
     reg_success = init_uart_ttl_generic(registration.profile_id, registration.driver.r_uart_ttl_generic);
     break;
 
+  case Registration_r_color_sensor_tag:
+    //call initialization function of color_sensor driver
+    reg_success = init_color_sensor(registration.profile_id, registration.driver.r_color_sensor);
+    break;
+
+  case Registration_r_ultrasonic_sensor_tag:
+    //call initialization function of ultrasonic_sensor driver
+    reg_success = init_ultrasonic_sensor(registration.profile_id, registration.driver.r_ultrasonic_sensor);
+    break;
+
+  case Registration_r_step_lowlevel_tag:
+    //call initialization function of step_lowlevel driver
+    reg_success = init_step_lowlevel(registration.profile_id, registration.driver.r_step_lowlevel);
+    break;
+    // ADI-MAIN-Reg: Label for automatic driver initialization (Do not move!)
+
   default:
     /* ERROR: no driver functions definded for specified registration */
     char str[100];
@@ -199,7 +231,6 @@ void registration_handler(Registration registration)
   if (!setup_flag && reg_success)
   {
     send_done(registration.profile_id);
-    send_debug("Registration was successful");
     // use profile manager to save new registration on registered_profiles + on SD card
     store_profile(registration);
   }

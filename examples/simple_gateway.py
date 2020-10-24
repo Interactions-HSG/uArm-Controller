@@ -208,6 +208,134 @@ class UartTTLGeneric(Profile):
         super().action_wait()
 
 
+class ColorSensor(Profile):
+    """ Profile for color_sensor driver """
+
+    def __init__(self, profile_id):  # TODO: add
+        """The constructor creates an instance of a color_sensor profile.
+
+        Args:
+            profile_id ([uint8]): unique profile id
+        """
+        # TODO: add fields (e.g. self.pin = pin)
+        super().__init__(profile_id)
+
+    def register_profile(self):
+        """ Register new profile on MCU """
+        req = line_protocol_pb2.Request()
+        # pylint: disable=no-member
+        req.registration.profile_id = self.profile_id
+        # TODO: add fields for registration
+        controller.send(req.SerializeToString())
+        logging.info(" Registration sent for Profile: %i", self.profile_id)
+        super().register_wait()
+
+    def action_profile(self):  # TODO: add arguments for fields
+        """ Action function for color_sensor profiles """
+        req = line_protocol_pb2.Request()
+        # pylint: disable=no-member
+        req.action.profile_id = self.profile_id
+        # TODO: add fields for action function
+        controller.send(req.SerializeToString())
+        self.profile_state = ProfileState.WAIT
+        super().action_wait()
+
+    def data_handler(self, data):
+        """Handles incoming data from actions or events.
+
+        Args:
+            data ([type]): TODO: has to be defined
+        """
+        # TODO: implement data handling
+        pass
+
+
+class UltrasonicSensor(Profile):
+    """ Profile for ultrasonic_sensor driver """
+
+    def __init__(self, profile_id):  # TODO: add
+        """The constructor creates an instance of a ultrasonic_sensor profile.
+
+        Args:
+            profile_id ([uint8]): unique profile id
+        """
+        # TODO: add fields (e.g. self.pin = pin)
+        super().__init__(profile_id)
+
+    def register_profile(self):
+        """ Register new profile on MCU """
+        req = line_protocol_pb2.Request()
+        # pylint: disable=no-member
+        req.registration.profile_id = self.profile_id
+        # TODO: add fields for registration
+        controller.send(req.SerializeToString())
+        logging.info(" Registration sent for Profile: %i", self.profile_id)
+        super().register_wait()
+
+    def action_profile(self):  # TODO: add arguments for fields
+        """ Action function for ultrasonic_sensor profiles """
+        req = line_protocol_pb2.Request()
+        # pylint: disable=no-member
+        req.action.profile_id = self.profile_id
+        # TODO: add fields for action function
+        controller.send(req.SerializeToString())
+        self.profile_state = ProfileState.WAIT
+        super().action_wait()
+
+    def data_handler(self, data):
+        """Handles incoming data from actions or events.
+
+        Args:
+            data ([type]): TODO: has to be defined
+        """
+        # TODO: implement data handling
+        pass
+
+
+class StepLowlevel(Profile):
+    """ Profile for step_lowlevel driver """
+
+    def __init__(self, profile_id):  # TODO: add
+        """The constructor creates an instance of a step_lowlevel profile.
+
+        Args:
+            profile_id ([uint8]): unique profile id
+        """
+        # TODO: add fields (e.g. self.pin = pin)
+        super().__init__(profile_id)
+
+    def register_profile(self):
+        """ Register new profile on MCU """
+        req = line_protocol_pb2.Request()
+        # pylint: disable=no-member
+        req.registration.profile_id = self.profile_id
+        # TODO: add fields for registration
+        controller.send(req.SerializeToString())
+        logging.info(" Registration sent for Profile: %i", self.profile_id)
+        super().register_wait()
+
+    def action_profile(self):  # TODO: add arguments for fields
+        """ Action function for step_lowlevel profiles """
+        req = line_protocol_pb2.Request()
+        # pylint: disable=no-member
+        req.action.profile_id = self.profile_id
+        # TODO: add fields for action function
+        controller.send(req.SerializeToString())
+        self.profile_state = ProfileState.WAIT
+        super().action_wait()
+
+    def data_handler(self, data):
+        """Handles incoming data from actions or events.
+
+        Args:
+            data ([type]): TODO: has to be defined
+        """
+        # TODO: implement data handling
+        pass
+
+
+# ADI-PY-Profile: Label for automatic driver initialization (Do not move!)
+
 """" ---------- Classes for protobuf message handling ---------- """
 
 
@@ -338,7 +466,7 @@ if __name__ == "__main__":
         """ Test for event handling: call event for button A """
         profile = profiles.get_profile(button_A_profile_id)
         if profile.profile_state == ProfileState.IDLE:
-            profile.read_event_digital(line_protocol_pb2.HIGH)
+            profile.read_event_digital(line_protocol_pb2.LOW)
 
         """ Test updating profile """
         if counter == 4:

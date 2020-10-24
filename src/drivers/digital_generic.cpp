@@ -79,7 +79,6 @@ bool event_digital_generic(uint32_t profile_id)
     {
         ++result; // to avoid empty byte field => cannot be parsed otherwise
         send_data(profile_id, &result, 1);
-        send_debug("Event for digital pin occured!");
         // set event flag for profile to true => starts event listening
         profiles_with_event[profile_id] = false;
         return true;

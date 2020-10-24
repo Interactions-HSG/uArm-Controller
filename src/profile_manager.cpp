@@ -27,24 +27,26 @@ Registration registered_profiles[256] = {0};
 /**************************************************************************/
 /*
     Store profile in registered profiles list
-*/ 
-void store_profile(Registration registration){
+*/
+void store_profile(Registration registration)
+{
 
     // store profile to registered_profiles
     registered_profiles[registration.profile_id] = registration;
     // TODO: update profile on SD card => add new profile
-    
 }
 
 /**************************************************************************/
 /*
     Delete corresponding profile field in registered profiles to avoid overlapping entries
-*/ 
-void delete_profile(uint8_t profile_id){
-    // check if the Profile_ID is already registered: 
-    if(registered_profiles[profile_id].profile_id != (uint32_t) 0){
+*/
+void delete_profile(uint8_t profile_id)
+{
+    // check if the Profile_ID is already registered:
+    if (registered_profiles[profile_id].profile_id != (uint32_t)0)
+    {
         // clear entry in registered profiles
         memset(&registered_profiles[profile_id], 0, sizeof(Registration));
-        // TODO: update SD file => delete profile 
+        // TODO: update SD file => delete profile
     }
 }

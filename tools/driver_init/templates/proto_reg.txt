@@ -1,0 +1,5 @@
+
+// Registration message for Template_Driver driver
+message R_Template_Driver {
+    //TODO: define the registration message structure
+}

@@ -1,0 +1,41 @@
+
+class TemplateDriver(Profile):
+    """ Profile for template_driver driver """
+
+    def __init__(self, profile_id):  # TODO: add
+        """The constructor creates an instance of a template_driver profile.
+
+        Args:
+            profile_id ([uint8]): unique profile id
+        """
+        # TODO: add fields (e.g. self.pin = pin)
+        super().__init__(profile_id)
+
+    def register_profile(self):
+        """ Register new profile on MCU """
+        req = line_protocol_pb2.Request()
+        # pylint: disable=no-member
+        req.registration.profile_id = self.profile_id
+        # TODO: add fields for registration
+        controller.send(req.SerializeToString())
+        logging.info(" Registration sent for Profile: %i", self.profile_id)
+        super().register_wait()
+
+    def action_profile(self):  # TODO: add arguments for fields
+        """ Action function for template_driver profiles """
+        req = line_protocol_pb2.Request()
+        # pylint: disable=no-member
+        req.action.profile_id = self.profile_id
+        # TODO: add fields for action function
+        controller.send(req.SerializeToString())
+        self.profile_state = ProfileState.WAIT
+        super().action_wait()
+
+    def data_handler(self, data):
+        """Handles incoming data from actions or events.
+
+        Args:
+            data ([type]): TODO: has to be defined
+        """
+        # TODO: implement data handling
+        pass
