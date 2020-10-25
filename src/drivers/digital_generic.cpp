@@ -1,7 +1,7 @@
 #include "digital_generic.h"
 
 /*========================================================================*/
-/*                          PRIVATE VARIABLES                             */
+/*                          PRIVATE DEFINITIONS                           */
 /*========================================================================*/
 
 /* Definitions used for event handling */

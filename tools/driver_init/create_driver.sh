@@ -27,9 +27,9 @@ create_driver()
         sed "s/Template_Driver/${Driver_Name}/g" ./tools/driver_init/templates/proto_reg.txt > ./tools/driver_init/templates/memory.txt
         sed -n -i -e "/ADI-PROTO-Reg/r ./tools/driver_init/templates/memory.txt" -e 1x -e '2,${x;p}' -e '${x;p}' ./protobuf/line_protocol.proto
         
-        # line_protocol.proto: oneof declerations
-        num_of_files=$(ls ./src/drivers |wc -l)
-        new_message_index=$(((num_of_files / 2) + 1))
+        # line_protocol.proto: oneof declerations => only working if .h files inside driver dir are only for drivers
+        num_of_files=$(ls ./src/drivers | egrep '\.h$' |wc -l)
+        new_message_index=$(((num_of_files) + 1))
         # oneof decleration: Action
         sed "s/Template_Driver/${Driver_Name}/g; s/template_driver/$1/g; s/INDEX/${new_message_index}/g" ./tools/driver_init/templates/proto_oneof_action.txt > ./tools/driver_init/templates/memory.txt
         sed -n -i -e "/ADI-PROTO-Oneof-Action/r ./tools/driver_init/templates/memory.txt" -e 1x -e '2,${x;p}' -e '${x;p}' ./protobuf/line_protocol.proto
