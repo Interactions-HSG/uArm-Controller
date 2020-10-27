@@ -211,7 +211,7 @@ class UartTTLGeneric(Profile):
 class ColorSensor(Profile):
     """ Profile for color_sensor driver """
 
-    def __init__(self, profile_id):  # TODO: add
+    def __init__(self, profile_id):  # TODO: implement support for multiple sensors
         """The constructor creates an instance of a color_sensor profile.
 
         Args:
@@ -237,7 +237,7 @@ class ColorSensor(Profile):
         # pylint: disable=no-member
         req.action.profile_id = self.profile_id
         # TODO: add fields for action function
-        req.action.a_color_sensor.event_triggered = False  # currently not used
+        req.action.a_color_sensor.event_triggered = False  # currently not supported
         controller.send(req.SerializeToString())
         logging.info(
             " Read request for color sensor sent (Profile: %i)", self.profile_id
@@ -263,13 +263,14 @@ class ColorSensor(Profile):
 class UltrasonicSensor(Profile):
     """ Profile for ultrasonic_sensor driver """
 
-    def __init__(self, profile_id):  # TODO: add
+    def __init__(self, profile_id, pin):
         """The constructor creates an instance of a ultrasonic_sensor profile.
 
         Args:
             profile_id ([uint8]): unique profile id
+            pin ([uint32]): pin number for SIG: receiver/transmitter
         """
-        # TODO: add fields (e.g. self.pin = pin)
+        self.pin = pin
         super().__init__(profile_id)
 
     def register_profile(self):
@@ -277,17 +278,17 @@ class UltrasonicSensor(Profile):
         req = line_protocol_pb2.Request()
         # pylint: disable=no-member
         req.registration.profile_id = self.profile_id
-        # TODO: add fields for registration
+        req.registration.r_ultrasonic_sensor.pin = self.pin
         controller.send(req.SerializeToString())
         logging.info(" Registration sent for Profile: %i", self.profile_id)
         super().register_wait()
 
-    def action_profile(self):  # TODO: add arguments for fields
+    def action_profile(self):
         """ Action function for ultrasonic_sensor profiles """
         req = line_protocol_pb2.Request()
         # pylint: disable=no-member
         req.action.profile_id = self.profile_id
-        # TODO: add fields for action function
+        req.action.a_ultrasonic_sensor.event_triggered = False  # not supported
         controller.send(req.SerializeToString())
         self.profile_state = ProfileState.WAIT
         super().action_wait()
@@ -296,10 +297,13 @@ class UltrasonicSensor(Profile):
         """Handles incoming data from actions or events.
 
         Args:
-            data ([type]): TODO: has to be defined
+            data (uint16): int containing distance in cm
         """
-        # TODO: implement data handling
-        pass
+        logging.info(  # TODO: check if this works
+            ">> Utrasonic sensor DATA: distance: %i cm (Profile: %i)",
+            int.from_bytes(data, byteorder="big", signed=False),
+            self.profile_id,
+        )
 
 
 class StepLowlevel(Profile):
@@ -444,6 +448,7 @@ button_A_profile_id = 5
 uArm1_profile_id = 10
 uArm2_profile_id = 11
 color_sensor_id = 20
+ultrasonic_sensor_id = 21
 
 # create profile for red LED
 DigitalGeneric(red_LED_profile_id, 2, line_protocol_pb2.OUTPUT)
@@ -458,6 +463,8 @@ UartTTLGeneric(uArm2_profile_id, line_protocol_pb2.UART3, BAUDRATE)
 
 # create profile for color sensor
 ColorSensor(color_sensor_id)
+# create profile for ultrasonic sensor
+UltrasonicSensor(ultrasonic_sensor_id, 23)
 
 
 """" ---------- Main ---------- """
@@ -476,6 +483,11 @@ if __name__ == "__main__":
     counter = 0
 
     while True:
+
+        """ Test for Color Sensor driver """
+        profile = profiles.get_profile(ultrasonic_sensor_id)
+        if profile.profile_state == ProfileState.IDLE:
+            profile.action_profile()
 
         """ Test for Color Sensor driver """
         profile = profiles.get_profile(color_sensor_id)

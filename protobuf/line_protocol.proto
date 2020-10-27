@@ -104,13 +104,12 @@ message A_UART_TTL_Generic { string command = 1; }
 
 // Action message for Color_Sensor driver
 message A_Color_Sensor {
-  // TODO: define the action message structure
   bool event_triggered = 1; // indicates if response is on event or on request
 }
 
 // Action message for Ultrasonic_Sensor driver
 message A_Ultrasonic_Sensor {
-  // TODO: define the action message structure
+  bool event_triggered = 1; // indicates if response is on event or on request
 }
 
 // Action message for Step_Lowlevel driver
@@ -136,15 +135,10 @@ message R_UART_TTL_Generic {
 }
 
 // Registration message for Color_Sensor driver
-message R_Color_Sensor {
-  // TODO: define the registration message structure
-  uint32 address = 1;
-}
+message R_Color_Sensor { uint32 address = 1; }
 
 // Registration message for Ultrasonic_Sensor driver
-message R_Ultrasonic_Sensor {
-  // TODO: define the registration message structure
-}
+message R_Ultrasonic_Sensor { uint32 pin = 1; }
 
 // Registration message for Step_Lowlevel driver
 message R_Step_Lowlevel {
