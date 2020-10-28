@@ -37,7 +37,7 @@ enum UartPort {
 /*========================================================================*/
 
 // message sent from controller to gateway
-message Feedback {
+message Response {
   ResponseCode code = 1; // used for feedback message handling
   uint32 profile_id = 2; // used to identify profile
   string message = 3;    // used for debugging messages

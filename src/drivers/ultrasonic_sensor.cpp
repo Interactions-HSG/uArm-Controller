@@ -28,7 +28,7 @@ bool init_ultrasonic_sensor(uint32_t profile_id, R_Ultrasonic_Sensor profile)
 */
 void run_ultrasonic_sensor(uint32_t profile_id, A_Ultrasonic_Sensor action)
 {
-    uint32_t _pin = registered_profiles[profile_id].driver.r_digital_generic.pin;
+    uint32_t _pin = profile_manager.profiles[profile_id].driver.r_digital_generic.pin;
 
     /* read distance from sensor */
     pinMode(_pin, OUTPUT);

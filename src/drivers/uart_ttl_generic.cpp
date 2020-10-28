@@ -51,7 +51,7 @@ void run_uart_ttl_generic(uint32_t profile_id, A_UART_TTL_Generic action)
 
     /* REAL IMPLEMENTATION => USED WITH UARM ROBOTS */
     // get corresponding port for profile
-    // UartPort port = registered_profiles[profile_id].driver.r_uart_ttl_generic.port;
+    // UartPort port = profile_manager.profiles[profile_id].driver.r_uart_ttl_generic.port;
     // /* send received command to the serial output (USB-C: UART2 or UART3) */
     // if (port == UartPort_UART2)
     // {

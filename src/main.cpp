@@ -13,17 +13,11 @@
 #include <main.h>
 
 /*========================================================================*/
-/*                    PUBLIC DEFINITIONS                                  */
-/*========================================================================*/
-
-/* Definitions used for event handling */
-// array to store which profiles expect an event
-// => true means we expect an event for the corresponding profile
-bool profiles_with_event[256] = {0};
-
-/*========================================================================*/
 /*                    PRIVATE DEFINITIONS                                 */
 /*========================================================================*/
+
+// initialize the profile manager
+ProfileManager profile_manager;
 
 /* Variables */
 // status to indicate setup phase => no feedback after device initialization
@@ -83,7 +77,7 @@ void loop(void)
   for (uint32_t profile_id = 0; profile_id < 256; profile_id++)
   {
     // call event_handler for all profiles that expect an event
-    if (profiles_with_event[profile_id])
+    if (profile_manager.events[profile_id])
     {
       // event handler returns true if an event occurred
       if (event_handler(profile_id))
@@ -184,7 +178,7 @@ void action_handler(Action action)
 void registration_handler(Registration registration)
 {
   // clear old profile, if already registered
-  delete_profile(registration.profile_id);
+  profile_manager.delete_profile(registration.profile_id);
 
   // boolean to check whether initialization was successfull or not
   bool reg_success = false;
@@ -231,8 +225,8 @@ void registration_handler(Registration registration)
   if (!setup_flag && reg_success)
   {
     send_done(registration.profile_id);
-    // use profile manager to save new registration on registered_profiles + on SD card
-    store_profile(registration);
+    // use profile manager to save new registration on profile_manager.profiles + on SD card
+    profile_manager.register_profile(registration);
   }
   // send ERROR if registration failed
   else if (!setup_flag && !reg_success)
@@ -251,8 +245,8 @@ bool event_handler(uint32_t profile_id)
   bool profile_event_occured = false;
 
   /* call the corresponing driver function for event handling*/
-  // get registration_tag from registered_profiles
-  switch (registered_profiles[profile_id].which_driver)
+  // get registration_tag from profile_manager.profiles
+  switch (profile_manager.profiles[profile_id].which_driver)
   {
   case Registration_r_digital_generic_tag:
     //call event handling function for digital_generic driver
@@ -267,7 +261,7 @@ bool event_handler(uint32_t profile_id)
   default:
     /* ERROR: no event driver functions definded for specified registration */
     char str[100];
-    snprintf(str, 100, "No event driver functions definded for driver: %i", registered_profiles[profile_id].which_driver);
+    snprintf(str, 100, "No event driver functions definded for driver: %i", profile_manager.profiles[profile_id].which_driver);
     send_error(profile_id, str);
     break;
   }

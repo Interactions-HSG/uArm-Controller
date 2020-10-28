@@ -54,7 +54,7 @@ void protobuf_init()
 
 /**************************************************************************/
 /*
-    Protobuf Decoder: Decodes incoming messages (+ sends feedback on failure)
+    Protobuf Decoder: Decodes incoming messages (+ sends response on failure)
 */
 void protobuf_decode(Request *req)
 {
@@ -69,7 +69,7 @@ void protobuf_decode(Request *req)
 /*                FUNCTIONS USED TO SEND MESSAGES                         */
 /*========================================================================*/
 /*
-    Functions used to send feedback to the gateway.
+    Functions used to send response to the gateway.
 
     For pb_callback_t message types:
         - use .arg [void*] to pass data to callback
@@ -84,15 +84,15 @@ void protobuf_decode(Request *req)
 */
 bool send_debug(const char *msg)
 {
-    // initiate Feedback msg
-    Feedback feedback = {};
+    // initiate Response msg
+    Response response = {};
 
-    /* add feedback fields */
-    feedback.code = ResponseCode_DEBUG;
-    feedback.message.arg = (void *)msg;
-    feedback.message.funcs.encode = &encode_string;
+    /* add response fields */
+    response.code = ResponseCode_DEBUG;
+    response.message.arg = (void *)msg;
+    response.message.funcs.encode = &encode_string;
     // encode protobuf message
-    bool res = pb_encode(&pb_out, Feedback_fields, &feedback);
+    bool res = pb_encode(&pb_out, Response_fields, &response);
     // send termination
     Serial.write(TERMINATOR);
     return res;
@@ -104,16 +104,16 @@ bool send_debug(const char *msg)
 */
 bool send_error(uint32_t profile_id, const char *msg)
 {
-    // initiate Feedback msg
-    Feedback feedback = {};
+    // initiate Response msg
+    Response response = {};
 
-    /* add feedback fields */
-    feedback.code = ResponseCode_ERROR;
-    feedback.profile_id = profile_id;
-    feedback.message.arg = (void *)msg;
-    feedback.message.funcs.encode = &encode_string;
+    /* add response fields */
+    response.code = ResponseCode_ERROR;
+    response.profile_id = profile_id;
+    response.message.arg = (void *)msg;
+    response.message.funcs.encode = &encode_string;
     // encode protobuf message
-    bool res = pb_encode(&pb_out, Feedback_fields, &feedback);
+    bool res = pb_encode(&pb_out, Response_fields, &response);
     // send termination
     Serial.write(TERMINATOR);
     return res;
@@ -125,14 +125,14 @@ bool send_error(uint32_t profile_id, const char *msg)
 */
 bool send_ack(uint32_t profile_id)
 {
-    // initiate Feedback msg
-    Feedback feedback = {};
+    // initiate Response msg
+    Response response = {};
 
-    /* add feedback fields */
-    feedback.code = ResponseCode_ACK;
-    feedback.profile_id = profile_id;
+    /* add response fields */
+    response.code = ResponseCode_ACK;
+    response.profile_id = profile_id;
     // encode protobuf message
-    bool res = pb_encode(&pb_out, Feedback_fields, &feedback);
+    bool res = pb_encode(&pb_out, Response_fields, &response);
     // send termination
     Serial.write(TERMINATOR);
     return res;
@@ -144,14 +144,14 @@ bool send_ack(uint32_t profile_id)
 */
 bool send_done(uint32_t profile_id)
 {
-    // initiate Feedback msg
-    Feedback feedback = {};
+    // initiate Response msg
+    Response response = {};
 
-    /* add feedback fields */
-    feedback.code = ResponseCode_DONE;
-    feedback.profile_id = profile_id;
+    /* add response fields */
+    response.code = ResponseCode_DONE;
+    response.profile_id = profile_id;
     // encode protobuf message
-    bool res = pb_encode(&pb_out, Feedback_fields, &feedback);
+    bool res = pb_encode(&pb_out, Response_fields, &response);
     // send termination
     Serial.write(TERMINATOR);
     return res;
@@ -164,20 +164,20 @@ bool send_done(uint32_t profile_id)
 */
 bool send_data(uint32_t profile_id, void *data, uint32_t length)
 {
-    // initiate Feedback msg
-    Feedback feedback = {};
+    // initiate Response msg
+    Response response = {};
 
     // update data length for data field [bytes]
     data_length = length;
 
-    /* add feedback fields */
-    feedback.code = ResponseCode_DATA;
-    feedback.profile_id = profile_id;
+    /* add response fields */
+    response.code = ResponseCode_DATA;
+    response.profile_id = profile_id;
     // TODO: implement data [bytes] field
-    feedback.data.arg = data;
-    feedback.data.funcs.encode = &encode_bytes;
+    response.data.arg = data;
+    response.data.funcs.encode = &encode_bytes;
     // encode protobuf message
-    bool res = pb_encode(&pb_out, Feedback_fields, &feedback);
+    bool res = pb_encode(&pb_out, Response_fields, &response);
     // send termination
     Serial.write(TERMINATOR);
     return res;

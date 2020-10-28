@@ -3,31 +3,25 @@
 
 #include "main.h"
 
-/*========================================================================*/
-/*                          PUBLIC DEFINITIONS                            */
-/*========================================================================*/
+class ProfileManager
+{
+public:
+    ProfileManager();
 
-// Registration array to store all registered profiles
-// Index == Profile_ID for efficient lookup
-//IDEA: use first bit of 1-byte Profile_ID to indicate which controller => less space needed, easier for gateway
-extern Registration registered_profiles[256]; 
+    // Registration array to store information for all registered profiles
+    Registration profiles[256];
 
-/*========================================================================*/
-/*                          PUBLIC FUNCTIONS                              */
-/*========================================================================*/
-/**************************************************************************/
-/*!
-    @brief  Store registration in registered_profiles + update SD card
-*/
-void store_profile(Registration registration);
+    // array to store which profiles expect an event
+    // => true means we expect an event for the corresponding profile
+    bool events[256];
 
-/**************************************************************************/
-/*!
-    @brief  Delete profile with corresponding ID on registered_profiles and on SD card
-*/
-void delete_profile(uint8_t profile_id);
+    void register_profile(Registration registration);
+    void delete_profile(uint8_t profile_id);
+    // function to initialize SD card
+    // function to re-initialize all stored profiles/registrations
+};
 
-// function to initialize SD card
-// function to re-initialize all stored profiles/registrations
+// instance of ProfileManager to handle all profiles
+extern ProfileManager profile_manager;
 
 #endif

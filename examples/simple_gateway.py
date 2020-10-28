@@ -357,31 +357,31 @@ class ControllerPacketHandler(serial.threaded.Packetizer):
     """Callback for received packet"""
 
     def handle_packet(self, packet):
-        feedback = line_protocol_pb2.Feedback()
-        feedback.ParseFromString(packet)
+        response = line_protocol_pb2.Response()
+        response.ParseFromString(packet)
         # pylint: disable=no-member
 
         # print entire msg for debugging
-        # print(feedback.__str__())
-        if feedback.code == line_protocol_pb2.DEBUG:
-            logging.info(">> DEBUG: %s", repr(feedback.message))
-        elif feedback.code == line_protocol_pb2.ERROR:
+        # print(response.__str__())
+        if response.code == line_protocol_pb2.DEBUG:
+            logging.info(">> DEBUG: %s", repr(response.message))
+        elif response.code == line_protocol_pb2.ERROR:
             logging.error(
-                ">> Profile: %i %s", feedback.profile_id, repr(feedback.message)
+                ">> Profile: %i %s", response.profile_id, repr(response.message)
             )
-        elif feedback.code == line_protocol_pb2.ACK:
-            profile = profiles.get_profile(feedback.profile_id)
+        elif response.code == line_protocol_pb2.ACK:
+            profile = profiles.get_profile(response.profile_id)
             profile.profile_state = ProfileState.BUSY
-            logging.info(">> ACK for profile: %s received", feedback.profile_id)
-        elif feedback.code == line_protocol_pb2.DONE:
-            logging.debug("DONE for %i", feedback.profile_id)
-            profile = profiles.get_profile(feedback.profile_id)
+            logging.info(">> ACK for profile: %s received", response.profile_id)
+        elif response.code == line_protocol_pb2.DONE:
+            logging.debug("DONE for %i", response.profile_id)
+            profile = profiles.get_profile(response.profile_id)
             if profile.profile_state == ProfileState.UNREG:
                 """ DONE for registration """
                 profile.profile_state = ProfileState.IDLE
                 logging.info(
                     ">> Registration DONE for profile: %s received",
-                    feedback.profile_id,
+                    response.profile_id,
                 )
             elif profile.profile_state == ProfileState.WAIT:
                 """ DONE for last action """
@@ -389,7 +389,7 @@ class ControllerPacketHandler(serial.threaded.Packetizer):
                 # TODO: handle DONE for last action
                 logging.info(
                     ">> Action DONE for profile: %s received",
-                    feedback.profile_id,
+                    response.profile_id,
                 )
             elif profile.profile_state == ProfileState.BUSY:
                 """ DONE for received event """
@@ -397,22 +397,22 @@ class ControllerPacketHandler(serial.threaded.Packetizer):
                 # TODO: handle DONE for events
                 logging.info(
                     ">> Event DONE for profile : %s received",
-                    feedback.profile_id,
+                    response.profile_id,
                 )
-        elif feedback.code == line_protocol_pb2.DATA:
-            profile = profiles.get_profile(feedback.profile_id)
+        elif response.code == line_protocol_pb2.DATA:
+            profile = profiles.get_profile(response.profile_id)
             if profile.profile_state == ProfileState.WAIT:
                 profile.profile_state = ProfileState.IDLE
                 logging.info(
-                    ">> Action DATA for profile: %s received", feedback.profile_id
+                    ">> Action DATA for profile: %s received", response.profile_id
                 )
-                profile.data_handler(feedback.data)
+                profile.data_handler(response.data)
             elif profile.profile_state == ProfileState.BUSY:
                 profile.profile_state = ProfileState.IDLE
                 logging.info(
-                    ">> Event DATA for profile: %s received", feedback.profile_id
+                    ">> Event DATA for profile: %s received", response.profile_id
                 )
-                profile.data_handler(feedback.data)
+                profile.data_handler(response.data)
 
 
 class Controller(serial.threaded.ReaderThread):
@@ -484,7 +484,7 @@ if __name__ == "__main__":
 
     while True:
 
-        """ Test for Color Sensor driver """
+        """ Test for Ultrasonic Sensor driver """
         profile = profiles.get_profile(ultrasonic_sensor_id)
         if profile.profile_state == ProfileState.IDLE:
             profile.action_profile()

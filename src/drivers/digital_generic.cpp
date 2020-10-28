@@ -36,7 +36,7 @@ bool init_digital_generic(uint32_t profile_id, R_Digital_Generic profile)
 void run_digital_generic(uint32_t profile_id, A_Digital_Generic action)
 {
     // get registration profile
-    R_Digital_Generic profile = registered_profiles[profile_id].driver.r_digital_generic;
+    R_Digital_Generic profile = profile_manager.profiles[profile_id].driver.r_digital_generic;
 
     /* action: write digital pin */
     if (profile.mode == DigitalMode_OUTPUT)
@@ -55,7 +55,7 @@ void run_digital_generic(uint32_t profile_id, A_Digital_Generic action)
     else if (profile.mode != DigitalMode_OUTPUT && action.event_triggered)
     {
         // set event flag for profile to true => starts event listening
-        profiles_with_event[profile_id] = true;
+        profile_manager.events[profile_id] = true;
         // set trigger for event
         event_trigger[profile_id] = action.output;
         // acknowledge start of event listening
@@ -72,7 +72,7 @@ void run_digital_generic(uint32_t profile_id, A_Digital_Generic action)
 */
 bool event_digital_generic(uint32_t profile_id)
 {
-    int result = digitalRead((uint8_t)registered_profiles[profile_id].driver.r_digital_generic.pin);
+    int result = digitalRead((uint8_t)profile_manager.profiles[profile_id].driver.r_digital_generic.pin);
 
     /* event occured: pin has trigger value */
     if (result == event_trigger[profile_id])
@@ -80,7 +80,7 @@ bool event_digital_generic(uint32_t profile_id)
         ++result; // to avoid empty byte field => cannot be parsed otherwise
         send_data(profile_id, &result, 1);
         // set event flag for profile to true => starts event listening
-        profiles_with_event[profile_id] = false;
+        profile_manager.events[profile_id] = false;
         return true;
     }
     /* event did not occure */
