@@ -1,5 +1,5 @@
 #include "color_sensor.h"
-#include "helper_files/Adafruit_TCS34725.h"
+#include "Adafruit_TCS34725.h"
 
 /*========================================================================*/
 /*                          PRIVATE DEFINITIONS                           */
