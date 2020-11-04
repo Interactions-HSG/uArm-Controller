@@ -125,7 +125,8 @@ class DigitalGeneric(Profile):
             )
             self.pin_state = True  # IDEA: do this on receiving ack
         elif output == line_protocol_pb2.LOW:
-            logging.info(" Digital pin action: LOW sent (Profile: %i)", self.profile_id)
+            logging.info(
+                " Digital pin action: LOW sent (Profile: %i)", self.profile_id)
             self.pin_state = False  # IDEA: do this on receiving ack
         self.profile_state = ProfileState.WAIT
         super().action_wait()
@@ -136,7 +137,8 @@ class DigitalGeneric(Profile):
         # pylint: disable=no-member
         req.action.profile_id = self.profile_id
         controller.send(req.SerializeToString())
-        logging.info(" Digital pin action: Read pin (Profile: %i)", self.profile_id)
+        logging.info(
+            " Digital pin action: Read pin (Profile: %i)", self.profile_id)
         self.profile_state = ProfileState.WAIT
         super().action_wait()
 
@@ -184,6 +186,10 @@ class UartTTLGeneric(Profile):
         self.baudrate = baudrate
         super().__init__(profile_id)
 
+    def create_cmd_list(self, cmd_list):
+        self.cmd_list = cmd_list
+        self.cmd_list_iterator = iter(self.cmd_list)
+
     def register_profile(self):
         """ register new profile on MCU """
         req = line_protocol_pb2.Request()
@@ -194,6 +200,12 @@ class UartTTLGeneric(Profile):
         controller.send(req.SerializeToString())
         logging.info(" UART: Registration sent (Profile: %i)", self.profile_id)
         super().register_wait()
+
+    def send_next(self):
+        """ send next command in command list """
+        command = next(self.cmd_list_iterator, False)
+        if command:
+            self.send_command(command[0], command[1])
 
     def send_command(self, command, event):
         """ Send command to UART2/3 """
@@ -375,12 +387,14 @@ class ControllerPacketHandler(serial.threaded.Packetizer):
             logging.info(">> DEBUG: %s", repr(response.message))
         elif response.code == line_protocol_pb2.ERROR:
             logging.error(
-                ">> Profile: %i %s", response.profile_id, repr(response.message)
+                ">> Profile: %i %s", response.profile_id, repr(
+                    response.message)
             )
         elif response.code == line_protocol_pb2.ACK:
             profile = profiles.get_profile(response.profile_id)
             profile.profile_state = ProfileState.BUSY
-            logging.info(">> ACK for profile: %s received", response.profile_id)
+            logging.info(">> ACK for profile: %s received",
+                         response.profile_id)
         elif response.code == line_protocol_pb2.DONE:
             logging.debug("DONE for %i", response.profile_id)
             profile = profiles.get_profile(response.profile_id)
@@ -466,6 +480,24 @@ DigitalGeneric(div_LED_profile_id, 3, line_protocol_pb2.OUTPUT)
 DigitalGeneric(button_A_profile_id, 47, line_protocol_pb2.INPUT_PULLUP)
 # create profile for UART2-TTL: uArm1
 UartTTLGeneric(uArm1_profile_id, line_protocol_pb2.UART2, BAUDRATE)
+profiles.get_profile(uArm1_profile_id).create_cmd_list(
+    [("G0 X180 Y0 Z160 F50\n", True),
+     ("M2210 F2000 T200\n", False),
+     ("M2210 F1000 T300\n", False),
+     ("G0 X180 Y50 Z100 F50\n", True),
+     ("M2210 F1000 T200\n", False),
+     ("P2220\n", False),
+     ("G0 X180 Y100 Z180 F50\n", True),
+     ("M2210 F1000 T200\n", False),
+     ("P2220\n", False),
+     ("M2231 V1\n", True),
+     ("G0 X180 Y50 Z100 F50\n", True),
+     ("M2210 F1000 T200\n", False),
+     ("P2220\n", False),
+     ("M2231 V0\n", True),
+     ("M2210 F1000 T300\n", False),
+     ("M2210 F2000 T200\n", False),
+     ])
 # create profile for UART3-TTL: uArm2
 # UartTTLGeneric(uArm2_profile_id, line_protocol_pb2.UART3, BAUDRATE)
 
@@ -478,7 +510,8 @@ UartTTLGeneric(uArm1_profile_id, line_protocol_pb2.UART2, BAUDRATE)
 """" ---------- Main ---------- """
 
 if __name__ == "__main__":
-    logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.DEBUG)
+    logging.basicConfig(format="%(levelname)s:%(message)s",
+                        level=logging.DEBUG)
 
     controller = Controller(sys.argv[1], ControllerPacketHandler)
     controller.start()
@@ -489,7 +522,6 @@ if __name__ == "__main__":
         profile.register_profile()
 
     counter = 0
-    robot_toggle = False
 
     while True:
 
@@ -538,12 +570,7 @@ if __name__ == "__main__":
         if profile is not None:
             if profile.profile_state == ProfileState.IDLE:
                 # profile.send_command(" P2220\n", False)
-                if robot_toggle:
-                    profile.send_command("G0 X180 Y50 Z100 F10\n", True)
-                    robot_toggle = False
-                else:
-                    profile.send_command("G0 X200 Y0 Z180 F10\n", True)
-                    robot_toggle = True
+                profile.send_next()
 
         """ Test: toggle red LED """
         profile = profiles.get_profile(red_LED_profile_id)
