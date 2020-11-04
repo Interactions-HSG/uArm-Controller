@@ -310,6 +310,8 @@ class UltrasonicSensor(Profile):
         req.action.profile_id = self.profile_id
         req.action.a_ultrasonic_sensor.event_triggered = False  # not supported
         controller.send(req.SerializeToString())
+        logging.info(
+            "Ultrasonic sensor: sent action (Profile: %i)", self.profile_id)
         self.profile_state = ProfileState.WAIT
         super().action_wait()
 
@@ -319,9 +321,11 @@ class UltrasonicSensor(Profile):
         Args:
             data (uint16): int containing distance in cm
         """
+        # first bit is used as flag to avoid null bytes
+        distance = (data[0] & 0b01111111) + (data[1] & 0b01111111)*128
         logging.info(  # TODO: check if this works
             ">> Utrasonic sensor DATA: distance: %i cm (Profile: %i)",
-            int.from_bytes(data, byteorder="big", signed=False),
+            distance,
             self.profile_id,
         )
 
@@ -396,7 +400,6 @@ class ControllerPacketHandler(serial.threaded.Packetizer):
             logging.info(">> ACK for profile: %s received",
                          response.profile_id)
         elif response.code == line_protocol_pb2.DONE:
-            logging.debug("DONE for %i", response.profile_id)
             profile = profiles.get_profile(response.profile_id)
             if profile.profile_state == ProfileState.UNREG:
                 """ DONE for registration """
@@ -473,11 +476,11 @@ color_sensor_id = 20
 ultrasonic_sensor_id = 21
 
 # create profile for red LED
-DigitalGeneric(red_LED_profile_id, 2, line_protocol_pb2.OUTPUT)
+#DigitalGeneric(red_LED_profile_id, 2, line_protocol_pb2.OUTPUT)
 # create profile for green LED
-DigitalGeneric(div_LED_profile_id, 3, line_protocol_pb2.OUTPUT)
+#DigitalGeneric(div_LED_profile_id, 3, line_protocol_pb2.OUTPUT)
 # create profile for button A (event triggered)
-DigitalGeneric(button_A_profile_id, 47, line_protocol_pb2.INPUT_PULLUP)
+#DigitalGeneric(button_A_profile_id, 47, line_protocol_pb2.INPUT_PULLUP)
 # create profile for UART2-TTL: uArm1
 UartTTLGeneric(uArm1_profile_id, line_protocol_pb2.UART2, BAUDRATE)
 profiles.get_profile(uArm1_profile_id).create_cmd_list(
@@ -504,7 +507,7 @@ profiles.get_profile(uArm1_profile_id).create_cmd_list(
 # create profile for color sensor
 # ColorSensor(color_sensor_id)
 # create profile for ultrasonic sensor
-# UltrasonicSensor(ultrasonic_sensor_id, 23)
+UltrasonicSensor(ultrasonic_sensor_id, 23)
 
 
 """" ---------- Main ---------- """

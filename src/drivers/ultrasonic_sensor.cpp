@@ -24,7 +24,6 @@ bool init_ultrasonic_sensor(uint32_t profile_id, R_Ultrasonic_Sensor profile)
 /**************************************************************************/
 /*!
     Action function for ultrasonic_sensor: measure distance in cm and send to gateway
-    TODO: does need more time than other devices => use event handling/ non-blocking mode?
 */
 void run_ultrasonic_sensor(uint32_t profile_id, A_Ultrasonic_Sensor action)
 {
@@ -41,11 +40,12 @@ void run_ultrasonic_sensor(uint32_t profile_id, A_Ultrasonic_Sensor action)
 
     /*The measured distance from the range 0 to 400 Centimeters*/
     unsigned long duration = pulseIn(_pin, HIGH);
-    //uint16_t range_in_centimeters = duration / 29 / 2; // TODO: test with sensor + check for range
-    uint16_t range_in_centimeters = 375; // constant value to test without sensor
+    uint16_t range_in_centimeters = (duration / 29 / 2);
 
-    buf[1] = (byte)range_in_centimeters;
-    buf[0] = (byte)(range_in_centimeters >> 8);
+    /* ensure no NULL byte is sent => use msb as flag*/
+    buf[0] = ((byte)range_in_centimeters) | B10000000;
+    buf[1] = ((byte)(range_in_centimeters >> 7)) | B10000000;
 
-    send_data(profile_id, &buf, 2);
+    //send_debug((const char *)buf);
+    send_data(profile_id, buf, 2);
 }
