@@ -79,7 +79,7 @@ bool event_digital_generic(uint32_t profile_id)
     {
         ++result; // to avoid empty byte field => cannot be parsed otherwise
         send_data(profile_id, &result, 1);
-        // set event flag for profile to true => starts event listening
+        // set event flag for profile to false => stop event listening
         profile_manager.events[profile_id] = false;
         return true;
     }

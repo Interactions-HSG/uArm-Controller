@@ -100,7 +100,10 @@ message A_Digital_Generic {
 }
 
 // Action message for UART-ttl generic driver
-message A_UART_TTL_Generic { string command = 1; }
+message A_UART_TTL_Generic {
+  string command = 1;
+  bool event_triggered = 2; // indicates if response is on event or on request
+}
 
 // Action message for Color_Sensor driver
 message A_Color_Sensor {
