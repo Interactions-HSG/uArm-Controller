@@ -136,6 +136,7 @@ class DigitalGeneric(Profile):
         req = line_protocol_pb2.Request()
         # pylint: disable=no-member
         req.action.profile_id = self.profile_id
+        req.action.a_digital_generic.event_triggered = False
         controller.send(req.SerializeToString())
         logging.info(
             " Digital pin action: Read pin (Profile: %i)", self.profile_id)
@@ -474,13 +475,14 @@ uArm1_profile_id = 10
 uArm2_profile_id = 11
 color_sensor_id = 20
 ultrasonic_sensor_id = 21
+tube_sensor_id = 22
 
 # create profile for red LED
-#DigitalGeneric(red_LED_profile_id, 2, line_protocol_pb2.OUTPUT)
+DigitalGeneric(red_LED_profile_id, 2, line_protocol_pb2.OUTPUT)
 # create profile for green LED
-#DigitalGeneric(div_LED_profile_id, 3, line_protocol_pb2.OUTPUT)
+DigitalGeneric(div_LED_profile_id, 3, line_protocol_pb2.OUTPUT)
 # create profile for button A (event triggered)
-#DigitalGeneric(button_A_profile_id, 47, line_protocol_pb2.INPUT_PULLUP)
+DigitalGeneric(button_A_profile_id, 47, line_protocol_pb2.INPUT_PULLUP)
 # create profile for UART2-TTL: uArm1
 UartTTLGeneric(uArm1_profile_id, line_protocol_pb2.UART2, BAUDRATE)
 profiles.get_profile(uArm1_profile_id).create_cmd_list(
@@ -505,9 +507,11 @@ profiles.get_profile(uArm1_profile_id).create_cmd_list(
 # UartTTLGeneric(uArm2_profile_id, line_protocol_pb2.UART3, BAUDRATE)
 
 # create profile for color sensor
-# ColorSensor(color_sensor_id)
+ColorSensor(color_sensor_id)
 # create profile for ultrasonic sensor
 UltrasonicSensor(ultrasonic_sensor_id, 23)
+# create profile for tube sensor
+DigitalGeneric(tube_sensor_id, 25, line_protocol_pb2.INPUT_PULLUP)
 
 
 """" ---------- Main ---------- """
@@ -528,6 +532,12 @@ if __name__ == "__main__":
 
     while True:
 
+        """ Test for tube Sensor """
+        profile = profiles.get_profile(tube_sensor_id)
+        if profile is not None:
+            if profile.profile_state == ProfileState.IDLE:
+                profile.read_digital()
+
         """ Test for Ultrasonic Sensor driver """
         profile = profiles.get_profile(ultrasonic_sensor_id)
         if profile is not None:
@@ -546,16 +556,18 @@ if __name__ == "__main__":
             if profile.profile_state == ProfileState.IDLE:
                 profile.read_event_digital(line_protocol_pb2.LOW)
 
-        # """ Test: updating profile """
-        # if counter == 4:
-        #     # create profile for blue LED (same ID as green!)
-        #     profile = DigitalGeneric(div_LED_profile_id, 5, line_protocol_pb2.OUTPUT)
-        #     profile.register_profile()
-        # elif counter == 9:
-        #     # create profile for green LED (same ID as blue => overwritten!)
-        #     profile = DigitalGeneric(div_LED_profile_id, 3, line_protocol_pb2.OUTPUT)
-        #     profile.register_profile()
-        # counter = (counter + 1) % 10
+        """ Test: updating profile """
+        if counter == 4:
+            # create profile for blue LED (same ID as green!)
+            profile = DigitalGeneric(
+                div_LED_profile_id, 5, line_protocol_pb2.OUTPUT)
+            profile.register_profile()
+        elif counter == 9:
+            # create profile for green LED (same ID as blue => overwritten!)
+            profile = DigitalGeneric(
+                div_LED_profile_id, 3, line_protocol_pb2.OUTPUT)
+            profile.register_profile()
+        counter = (counter + 1) % 10
 
         """ Test: toggle green/blue LED """
         profile = profiles.get_profile(div_LED_profile_id)

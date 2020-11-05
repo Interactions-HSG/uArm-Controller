@@ -50,8 +50,8 @@ void run_color_sensor(uint32_t profile_id, A_Color_Sensor action)
     g = tcs.read16(TCS34725_GDATAL) / 255;
     b = tcs.read16(TCS34725_BDATAL) / 255;
     data[0] = (byte)constrain(r, 1, 255); // lower bound of 1 used for protobuf handling => no empty fields
-    data[1] = (byte)constrain(b, 1, 255);
-    data[2] = (byte)constrain(g, 1, 255);
+    data[1] = (byte)constrain(g, 1, 255);
+    data[2] = (byte)constrain(b, 1, 255);
     // data[0] = (byte)tcs.read8(TCS34725_RDATAL);
     // data[1] = (byte)tcs.read8(TCS34725_GDATAL);
     // data[2] = (byte)tcs.read8(TCS34725_BDATAL);

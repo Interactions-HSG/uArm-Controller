@@ -49,6 +49,7 @@ void run_digital_generic(uint32_t profile_id, A_Digital_Generic action)
     else if (profile.mode != DigitalMode_OUTPUT && !(action.event_triggered))
     {
         int result = digitalRead((uint8_t)profile.pin);
+        ++result; // to avoid empty byte field => cannot be parsed otherwise
         send_data(profile_id, &result, 1);
     }
     /* action: read digital pin in non-blocking mode: start event listening */
