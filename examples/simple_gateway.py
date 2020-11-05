@@ -8,6 +8,8 @@ This module provides a serial handler to communicate with uArm Controller Arduin
 import sys
 import threading
 import time
+import math
+import os
 
 
 import logging
@@ -142,6 +144,7 @@ class DigitalGeneric(Profile):
             " Digital pin action: Read pin (Profile: %i)", self.profile_id)
         self.profile_state = ProfileState.WAIT
         super().action_wait()
+        return self.pin_state
 
     def read_event_digital(self, trigger_value):
         """Start event listening for digital pin.
@@ -167,9 +170,10 @@ class DigitalGeneric(Profile):
         Args:
             data (byte): 1:LOW or 2:HIGH (added one to avoid empty byte)
         """
+        self.pin_state = ord(data) - 1
         logging.info(
             ">> Digital DATA: received state: %i (Profile: %i)",
-            ord(data) - 1,
+            self.pin_state,
             self.profile_id,
         )
 
@@ -238,7 +242,10 @@ class ColorSensor(Profile):
         Args:
             profile_id ([uint8]): unique profile id
         """
-        # TODO: add fields (e.g. self.pin = pin)
+        self.r = 0
+        self.g = 0
+        self.b = 0
+        self.estimated_color = "Unknown"
         super().__init__(profile_id)
 
     def register_profile(self):
@@ -252,12 +259,11 @@ class ColorSensor(Profile):
         logging.info(" Registration sent for Profile: %i", self.profile_id)
         super().register_wait()
 
-    def action_profile(self):  # TODO: add arguments for fields
+    def action_profile(self):
         """ Action function for color_sensor profiles """
         req = line_protocol_pb2.Request()
         # pylint: disable=no-member
         req.action.profile_id = self.profile_id
-        # TODO: add fields for action function
         req.action.a_color_sensor.event_triggered = False  # currently not supported
         controller.send(req.SerializeToString())
         logging.info(
@@ -266,19 +272,37 @@ class ColorSensor(Profile):
         self.profile_state = ProfileState.WAIT
         super().action_wait()
 
+    def _estimate_color(self):
+        _red = [165, 57, 52, "Red"]
+        _yellow = [255, 255, 110, "Yellow"]
+        _green = [49, 90, 65, "Green"]
+        _wood = [201, 186, 126, "Wood"]
+        _colors = [_red, _yellow, _green, _wood]
+        _distances = [0, 0, 0, 0]
+        for i, color in enumerate(_colors):
+            _distances[i] = math.sqrt(
+                (color[0]-self.r)**2 + (color[1]-self.g)**2 + (color[2]-self.b)**2)
+        min_index = _distances.index(min(_distances))
+        self.estimated_color = _colors[min_index][3]
+
     def data_handler(self, data):
         """Handles incoming data from actions or events.
 
         Args:
             data (byte[3]): RGB value with one byte for each color
         """
+        self.r = data[0]
+        self.g = data[1]
+        self.b = data[2]
         logging.info(  # TODO: check if RGB values are valid
             ">> Color sensor DATA: R: %i, G: %i, B: %i (Profile: %i)",
-            data[0],
-            data[1],
-            data[2],
+            self.r,
+            self.g,
+            self.b,
             self.profile_id,
         )
+        self._estimate_color()
+        logging.info("Estimated color: %s", self.estimated_color)
 
 
 class UltrasonicSensor(Profile):
@@ -478,40 +502,96 @@ ultrasonic_sensor_id = 21
 tube_sensor_id = 22
 
 # create profile for red LED
-DigitalGeneric(red_LED_profile_id, 2, line_protocol_pb2.OUTPUT)
+#DigitalGeneric(red_LED_profile_id, 2, line_protocol_pb2.OUTPUT)
 # create profile for green LED
-DigitalGeneric(div_LED_profile_id, 3, line_protocol_pb2.OUTPUT)
+#DigitalGeneric(div_LED_profile_id, 3, line_protocol_pb2.OUTPUT)
 # create profile for button A (event triggered)
-DigitalGeneric(button_A_profile_id, 47, line_protocol_pb2.INPUT_PULLUP)
+#DigitalGeneric(button_A_profile_id, 47, line_protocol_pb2.INPUT_PULLUP)
 # create profile for UART2-TTL: uArm1
 UartTTLGeneric(uArm1_profile_id, line_protocol_pb2.UART2, BAUDRATE)
-profiles.get_profile(uArm1_profile_id).create_cmd_list(
-    [("G0 X180 Y0 Z160 F50\n", True),
-     ("M2210 F2000 T200\n", False),
-     ("M2210 F1000 T300\n", False),
-     ("G0 X180 Y50 Z100 F50\n", True),
-     ("M2210 F1000 T200\n", False),
-     ("P2220\n", False),
-     ("G0 X180 Y100 Z180 F50\n", True),
-     ("M2210 F1000 T200\n", False),
-     ("P2220\n", False),
-     ("M2231 V1\n", True),
-     ("G0 X180 Y50 Z100 F50\n", True),
-     ("M2210 F1000 T200\n", False),
-     ("P2220\n", False),
-     ("M2231 V0\n", True),
-     ("M2210 F1000 T300\n", False),
-     ("M2210 F2000 T200\n", False),
-     ])
+# profiles.get_profile(uArm1_profile_id).create_cmd_list(
+#     [("G0 X180 Y0 Z160 F50\n", True),
+#      ("M2210 F2000 T200\n", False),
+#      ("M2210 F1000 T300\n", False),
+#      ("G0 X180 Y50 Z100 F50\n", True),
+#      ("M2210 F1000 T200\n", False),
+#      ("P2220\n", False),
+#      ("G0 X180 Y100 Z180 F50\n", True),
+#      ("M2210 F1000 T200\n", False),
+#      ("P2220\n", False),
+#      ("M2231 V1\n", True),
+#      ("G0 X180 Y50 Z100 F50\n", True),
+#      ("M2210 F1000 T200\n", False),
+#      ("P2220\n", False),
+#      ("M2231 V0\n", True),
+#      ("M2210 F1000 T300\n", False),
+#      ("M2210 F2000 T200\n", False),
+#      ])
 # create profile for UART3-TTL: uArm2
 # UartTTLGeneric(uArm2_profile_id, line_protocol_pb2.UART3, BAUDRATE)
 
 # create profile for color sensor
 ColorSensor(color_sensor_id)
 # create profile for ultrasonic sensor
-UltrasonicSensor(ultrasonic_sensor_id, 23)
+#UltrasonicSensor(ultrasonic_sensor_id, 23)
 # create profile for tube sensor
 DigitalGeneric(tube_sensor_id, 25, line_protocol_pb2.INPUT_PULLUP)
+
+
+def subroutine_test():
+    """ Subroutine to test combination of sensors/actuators """
+    # get needed profiles
+    uArm_profile = profiles.get_profile(uArm1_profile_id)
+    color_profile = profiles.get_profile(color_sensor_id)
+    tube_profile = profiles.get_profile(tube_sensor_id)
+
+    # reset uArm
+    uArm_profile.send_command("G0 X180 Y0 Z160 F50\n", False)
+    uArm_profile.send_command("M2210 F2000 T200\n", False)
+    uArm_profile.send_command("M2210 F1000 T300\n", False)
+
+    # counter used for number of colored cubes
+    num_color_cubes = 0
+
+    # while cube available on ramp
+    while not tube_profile.read_digital():
+        # robot to ramp
+        uArm_profile.send_command("G0 X84 Y-145 Z90 F100\n", False)
+        uArm_profile.send_command("G0 X84 Y-160 Z50 F5\n", False)
+        # pump on
+        uArm_profile.send_command("M2231 V1\n", False)
+        time.sleep(1)
+        uArm_profile.send_command("G0 X84 Y-145 Z90 F5\n", False)
+
+        # robot go to color sensor
+        uArm_profile.send_command("G0 X141 Y-76 Z70 F50\n", False)
+        uArm_profile.send_command("G0 X141 Y-76 Z46 F5\n", False)
+        # Color sensor: measure color
+        color_profile.action_profile()
+        uArm_profile.send_command("G0 X141 Y-76 Z55 F5\n", False)
+
+        if color_profile.estimated_color == "Wood":
+            uArm_profile.send_command("G0 X104 Y160 Z55 F50\n", False)
+            uArm_profile.send_command("G0 X104 Y160 Z28 F5\n", False)
+            # pump off
+            uArm_profile.send_command("M2231 V0\n", False)
+            uArm_profile.send_command("G0 X104 Y160 Z55 F5\n", False)
+        else:
+            num_color_cubes += 1
+            end_destination = num_color_cubes*30
+            uArm_profile.send_command(
+                "G0 X178 Y160 Z{} F50\n".format(end_destination + 10), False)
+            uArm_profile.send_command(
+                "G0 X178 Y160 Z{} F5\n".format(end_destination), False)
+            # pump off
+            uArm_profile.send_command("M2231 V0\n", False)
+            uArm_profile.send_command(
+                "G0 X178 Y160 Z{} F5\n".format(end_destination + 10), False)
+
+    # go to start position
+    uArm_profile.send_command("G0 X180 Y0 Z160 F100\n", False)
+    uArm_profile.send_command("M2210 F1000 T300\n", False)
+    uArm_profile.send_command("M2210 F2000 T200\n", False)
 
 
 """" ---------- Main ---------- """
@@ -529,8 +609,9 @@ if __name__ == "__main__":
         profile.register_profile()
 
     counter = 0
+    simple_tests = False
 
-    while True:
+    while simple_tests:
 
         """ Test for tube Sensor """
         profile = profiles.get_profile(tube_sensor_id)
@@ -597,3 +678,16 @@ if __name__ == "__main__":
                 else:
                     """ send action to turn led on"""
                     profile.write_digital(line_protocol_pb2.HIGH)
+
+    try:
+        subroutine_test()
+    except KeyboardInterrupt:
+        uArm_profile = profiles.get_profile(uArm1_profile_id)
+        uArm_profile.send_command("M2231 V0\n", False)
+        # TODO: implement proper interrupt handling
+        #uArm_profile.send_command("G0 X180 Y0 Z160 F50\n", False)
+        print('Interrupted')
+        try:
+            sys.exit(0)
+        except SystemExit:
+            os._exit(0)
