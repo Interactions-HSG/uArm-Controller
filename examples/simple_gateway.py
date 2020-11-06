@@ -34,14 +34,14 @@ class ProfileState(Enum):
     Attributes:
         UNREG: Unregistered (profile needs first to be registered on the MCU)
         IDLE: Profile is registered and available
-        WAIT: Profile is waiting for ACK => Blocking state for entire MCU
-        BUSY: Profile is waiting for response/data => Non-Blocking state for other profiles
+        BLOCKING: Profile is waiting for ACK or DATA => Blocking state for entire MCU
+        WAITING: Profile is waiting for response/data => Non-Blocking state for other profiles
     """
 
     UNREG = 1
     IDLE = 2
-    WAIT = 3
-    BUSY = 4
+    BLOCKING = 3
+    WAITING = 4
 
 
 class ProfileManager(list):
@@ -81,7 +81,7 @@ class Profile:
     def action_wait(self):
         """ Function to wait until profile is registered """
         # TODO: implement timeout?
-        while self.profile_state == ProfileState.WAIT:
+        while self.profile_state == ProfileState.BLOCKING:
             time.sleep(0.1)
 
 
@@ -130,7 +130,7 @@ class DigitalGeneric(Profile):
             logging.info(
                 " Digital pin action: LOW sent (Profile: %i)", self.profile_id)
             self.pin_state = False  # IDEA: do this on receiving ack
-        self.profile_state = ProfileState.WAIT
+        self.profile_state = ProfileState.BLOCKING
         super().action_wait()
 
     def read_digital(self):
@@ -142,7 +142,7 @@ class DigitalGeneric(Profile):
         controller.send(req.SerializeToString())
         logging.info(
             " Digital pin action: Read pin (Profile: %i)", self.profile_id)
-        self.profile_state = ProfileState.WAIT
+        self.profile_state = ProfileState.BLOCKING
         super().action_wait()
         return self.pin_state
 
@@ -161,7 +161,7 @@ class DigitalGeneric(Profile):
         logging.info(
             " Digital pin action: Start event listening (Profile: %i)", self.profile_id
         )
-        self.profile_state = ProfileState.WAIT
+        self.profile_state = ProfileState.BLOCKING
         super().action_wait()
 
     def data_handler(self, data):
@@ -221,7 +221,7 @@ class UartTTLGeneric(Profile):
         req.action.a_uart_ttl_generic.event_triggered = event
         controller.send(req.SerializeToString())
         logging.info(" UART: Command sent (Profile: %i)", self.profile_id)
-        self.profile_state = ProfileState.WAIT
+        self.profile_state = ProfileState.BLOCKING
         super().action_wait()
 
     def data_handler(self, data):
@@ -269,7 +269,7 @@ class ColorSensor(Profile):
         logging.info(
             " Read request for color sensor sent (Profile: %i)", self.profile_id
         )
-        self.profile_state = ProfileState.WAIT
+        self.profile_state = ProfileState.BLOCKING
         super().action_wait()
 
     def _estimate_color(self):
@@ -337,7 +337,7 @@ class UltrasonicSensor(Profile):
         controller.send(req.SerializeToString())
         logging.info(
             "Ultrasonic sensor: sent action (Profile: %i)", self.profile_id)
-        self.profile_state = ProfileState.WAIT
+        self.profile_state = ProfileState.BLOCKING
         super().action_wait()
 
     def data_handler(self, data):
@@ -384,7 +384,7 @@ class StepLowlevel(Profile):
         req.action.profile_id = self.profile_id
         # TODO: add fields for action function
         controller.send(req.SerializeToString())
-        self.profile_state = ProfileState.WAIT
+        self.profile_state = ProfileState.BLOCKING
         super().action_wait()
 
     def data_handler(self, data):
@@ -421,7 +421,7 @@ class ControllerPacketHandler(serial.threaded.Packetizer):
             )
         elif response.code == line_protocol_pb2.ACK:
             profile = profiles.get_profile(response.profile_id)
-            profile.profile_state = ProfileState.BUSY
+            profile.profile_state = ProfileState.WAITING
             logging.info(">> ACK for profile: %s received",
                          response.profile_id)
         elif response.code == line_protocol_pb2.DONE:
@@ -433,7 +433,7 @@ class ControllerPacketHandler(serial.threaded.Packetizer):
                     ">> Registration DONE for profile: %s received",
                     response.profile_id,
                 )
-            elif profile.profile_state == ProfileState.WAIT:
+            elif profile.profile_state == ProfileState.BLOCKING:
                 """ DONE for last action """
                 profile.profile_state = ProfileState.IDLE
                 # TODO: handle DONE for last action
@@ -441,7 +441,7 @@ class ControllerPacketHandler(serial.threaded.Packetizer):
                     ">> Action DONE for profile: %s received",
                     response.profile_id,
                 )
-            elif profile.profile_state == ProfileState.BUSY:
+            elif profile.profile_state == ProfileState.WAITING:
                 """ DONE for received event """
                 profile.profile_state = ProfileState.IDLE
                 # TODO: handle DONE for events
@@ -451,13 +451,13 @@ class ControllerPacketHandler(serial.threaded.Packetizer):
                 )
         elif response.code == line_protocol_pb2.DATA:
             profile = profiles.get_profile(response.profile_id)
-            if profile.profile_state == ProfileState.WAIT:
+            if profile.profile_state == ProfileState.BLOCKING:
                 profile.profile_state = ProfileState.IDLE
                 logging.info(
                     ">> Action DATA for profile: %s received", response.profile_id
                 )
                 profile.data_handler(response.data)
-            elif profile.profile_state == ProfileState.BUSY:
+            elif profile.profile_state == ProfileState.WAITING:
                 profile.profile_state = ProfileState.IDLE
                 logging.info(
                     ">> Event DATA for profile: %s received", response.profile_id
@@ -556,12 +556,12 @@ def subroutine_test():
     # while cube available on ramp
     while not tube_profile.read_digital():
         # robot to ramp
-        uArm_profile.send_command("G0 X84 Y-145 Z90 F100\n", False)
+        uArm_profile.send_command("G0 X84 Y-160 Z90 F100\n", False)
         uArm_profile.send_command("G0 X84 Y-160 Z50 F5\n", False)
         # pump on
         uArm_profile.send_command("M2231 V1\n", False)
         time.sleep(1)
-        uArm_profile.send_command("G0 X84 Y-145 Z90 F5\n", False)
+        uArm_profile.send_command("G0 X84 Y-160 Z90 F5\n", False)
 
         # robot go to color sensor
         uArm_profile.send_command("G0 X141 Y-76 Z70 F50\n", False)
@@ -575,7 +575,7 @@ def subroutine_test():
             uArm_profile.send_command("G0 X104 Y160 Z28 F5\n", False)
             # pump off
             uArm_profile.send_command("M2231 V0\n", False)
-            uArm_profile.send_command("G0 X104 Y160 Z55 F5\n", False)
+            uArm_profile.send_command("G0 X104 Y160 Z55 F50\n", False)
         else:
             num_color_cubes += 1
             end_destination = num_color_cubes*30
