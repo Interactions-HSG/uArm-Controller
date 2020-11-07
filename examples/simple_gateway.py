@@ -234,9 +234,12 @@ class UartTTLGeneric(Profile):
 
 
 class ColorSensor(Profile):
-    """ Profile for color_sensor driver """
+    """ Profile for color_sensor driver 
 
-    def __init__(self, profile_id):  # TODO: implement support for multiple sensors
+        TODO: implement event handling => event on specific color range    
+    """
+
+    def __init__(self, profile_id):
         """The constructor creates an instance of a color_sensor profile.
 
         Args:
@@ -253,7 +256,6 @@ class ColorSensor(Profile):
         req = line_protocol_pb2.Request()
         # pylint: disable=no-member
         req.registration.profile_id = self.profile_id
-        # TODO: add fields for registration
         req.registration.r_color_sensor.address = 0  # currently not used
         controller.send(req.SerializeToString())
         logging.info(" Registration sent for Profile: %i", self.profile_id)
@@ -294,7 +296,7 @@ class ColorSensor(Profile):
         self.r = data[0]
         self.g = data[1]
         self.b = data[2]
-        logging.info(  # TODO: check if RGB values are valid
+        logging.info(
             ">> Color sensor DATA: R: %i, G: %i, B: %i (Profile: %i)",
             self.r,
             self.g,
@@ -348,7 +350,7 @@ class UltrasonicSensor(Profile):
         """
         # first bit is used as flag to avoid null bytes
         distance = (data[0] & 0b01111111) + (data[1] & 0b01111111)*128
-        logging.info(  # TODO: check if this works
+        logging.info(
             ">> Utrasonic sensor DATA: distance: %i cm (Profile: %i)",
             distance,
             self.profile_id,
@@ -413,56 +415,40 @@ class ControllerPacketHandler(serial.threaded.Packetizer):
         # print entire msg for debugging
         # print(response.__str__())
         if response.code == line_protocol_pb2.DEBUG:
-            logging.info(">> DEBUG: %s", repr(response.message))
+            logging.debug(">> %s", response.payload.decode("utf-8"))
         elif response.code == line_protocol_pb2.ERROR:
             logging.error(
-                ">> Profile: %i %s", response.profile_id, repr(
-                    response.message)
+                ">> Profile: %i %s",
+                response.profile_id,
+                response.payload.decode("utf-8")
             )
         elif response.code == line_protocol_pb2.ACK:
             profile = profiles.get_profile(response.profile_id)
             profile.profile_state = ProfileState.WAITING
             logging.info(">> ACK for profile: %s received",
                          response.profile_id)
-        elif response.code == line_protocol_pb2.DONE:
-            profile = profiles.get_profile(response.profile_id)
-            if profile.profile_state == ProfileState.UNREG:
-                """ DONE for registration """
-                profile.profile_state = ProfileState.IDLE
-                logging.info(
-                    ">> Registration DONE for profile: %s received",
-                    response.profile_id,
-                )
-            elif profile.profile_state == ProfileState.BLOCKING:
-                """ DONE for last action """
-                profile.profile_state = ProfileState.IDLE
-                # TODO: handle DONE for last action
-                logging.info(
-                    ">> Action DONE for profile: %s received",
-                    response.profile_id,
-                )
-            elif profile.profile_state == ProfileState.WAITING:
-                """ DONE for received event """
-                profile.profile_state = ProfileState.IDLE
-                # TODO: handle DONE for events
-                logging.info(
-                    ">> Event DONE for profile : %s received",
-                    response.profile_id,
-                )
         elif response.code == line_protocol_pb2.DATA:
             profile = profiles.get_profile(response.profile_id)
-            if profile.profile_state == ProfileState.BLOCKING:
+            if profile.profile_state == ProfileState.UNREG:
+                """ DATA for registration """
+                profile.profile_state = ProfileState.IDLE
+                logging.info(
+                    ">> Registration DATA for profile: %s received",
+                    response.profile_id)
+            elif profile.profile_state == ProfileState.BLOCKING:
                 profile.profile_state = ProfileState.IDLE
                 logging.info(
                     ">> Action DATA for profile: %s received", response.profile_id
                 )
-                profile.data_handler(response.data)
+                if not len(response.payload) == 0:
+                    profile.data_handler(response.payload)
             elif profile.profile_state == ProfileState.WAITING:
                 profile.profile_state = ProfileState.IDLE
                 logging.info(
                     ">> Event DATA for profile: %s received", response.profile_id
                 )
-                profile.data_handler(response.data)
+                if not len(response.payload) == 0:
+                    profile.data_handler(response.payload)
 
 
 class Controller(serial.threaded.ReaderThread):
@@ -502,38 +488,38 @@ ultrasonic_sensor_id = 21
 tube_sensor_id = 22
 
 # create profile for red LED
-#DigitalGeneric(red_LED_profile_id, 2, line_protocol_pb2.OUTPUT)
+DigitalGeneric(red_LED_profile_id, 2, line_protocol_pb2.OUTPUT)
 # create profile for green LED
-#DigitalGeneric(div_LED_profile_id, 3, line_protocol_pb2.OUTPUT)
+DigitalGeneric(div_LED_profile_id, 3, line_protocol_pb2.OUTPUT)
 # create profile for button A (event triggered)
-#DigitalGeneric(button_A_profile_id, 47, line_protocol_pb2.INPUT_PULLUP)
+DigitalGeneric(button_A_profile_id, 47, line_protocol_pb2.INPUT_PULLUP)
 # create profile for UART2-TTL: uArm1
 UartTTLGeneric(uArm1_profile_id, line_protocol_pb2.UART2, BAUDRATE)
-# profiles.get_profile(uArm1_profile_id).create_cmd_list(
-#     [("G0 X180 Y0 Z160 F50\n", True),
-#      ("M2210 F2000 T200\n", False),
-#      ("M2210 F1000 T300\n", False),
-#      ("G0 X180 Y50 Z100 F50\n", True),
-#      ("M2210 F1000 T200\n", False),
-#      ("P2220\n", False),
-#      ("G0 X180 Y100 Z180 F50\n", True),
-#      ("M2210 F1000 T200\n", False),
-#      ("P2220\n", False),
-#      ("M2231 V1\n", True),
-#      ("G0 X180 Y50 Z100 F50\n", True),
-#      ("M2210 F1000 T200\n", False),
-#      ("P2220\n", False),
-#      ("M2231 V0\n", True),
-#      ("M2210 F1000 T300\n", False),
-#      ("M2210 F2000 T200\n", False),
-#      ])
+profiles.get_profile(uArm1_profile_id).create_cmd_list(
+    [("G0 X180 Y0 Z160 F50\n", True),
+     ("M2210 F2000 T200\n", False),
+     ("M2210 F1000 T300\n", False),
+     ("G0 X180 Y50 Z100 F50\n", True),
+     ("M2210 F1000 T200\n", False),
+     ("P2220\n", False),
+     ("G0 X180 Y100 Z180 F50\n", True),
+     ("M2210 F1000 T200\n", False),
+     ("P2220\n", False),
+     ("M2231 V1\n", True),
+     ("G0 X180 Y50 Z100 F50\n", True),
+     ("M2210 F1000 T200\n", False),
+     ("P2220\n", False),
+     ("M2231 V0\n", True),
+     ("M2210 F1000 T300\n", False),
+     ("M2210 F2000 T200\n", False),
+     ])
 # create profile for UART3-TTL: uArm2
 # UartTTLGeneric(uArm2_profile_id, line_protocol_pb2.UART3, BAUDRATE)
 
 # create profile for color sensor
 ColorSensor(color_sensor_id)
 # create profile for ultrasonic sensor
-#UltrasonicSensor(ultrasonic_sensor_id, 23)
+UltrasonicSensor(ultrasonic_sensor_id, 23)
 # create profile for tube sensor
 DigitalGeneric(tube_sensor_id, 25, line_protocol_pb2.INPUT_PULLUP)
 
@@ -609,7 +595,7 @@ if __name__ == "__main__":
         profile.register_profile()
 
     counter = 0
-    simple_tests = False
+    simple_tests = True
 
     while simple_tests:
 
@@ -679,15 +665,15 @@ if __name__ == "__main__":
                     """ send action to turn led on"""
                     profile.write_digital(line_protocol_pb2.HIGH)
 
-    try:
-        subroutine_test()
-    except KeyboardInterrupt:
-        uArm_profile = profiles.get_profile(uArm1_profile_id)
-        uArm_profile.send_command("M2231 V0\n", False)
-        # TODO: implement proper interrupt handling
-        #uArm_profile.send_command("G0 X180 Y0 Z160 F50\n", False)
-        print('Interrupted')
-        try:
-            sys.exit(0)
-        except SystemExit:
-            os._exit(0)
+    # try:
+    #     subroutine_test()
+    # except KeyboardInterrupt:
+    #     uArm_profile = profiles.get_profile(uArm1_profile_id)
+    #     uArm_profile.send_command("M2231 V0\n", False)
+    #     # TODO: implement proper interrupt handling
+    #     #uArm_profile.send_command("G0 X180 Y0 Z160 F50\n", False)
+    #     print('Interrupted')
+    #     try:
+    #         sys.exit(0)
+    #     except SystemExit:
+    #         os._exit(0)

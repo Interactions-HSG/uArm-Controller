@@ -38,17 +38,11 @@ bool send_error(uint32_t profile_id, const char *msg);
 bool send_ack(uint32_t profile_id);
 
 /**
-    @brief  Sends simple DONE message to the gateway
-    @param  profile_id: Profile_id
-*/
-bool send_done(uint32_t profile_id);
-
-/**
     @brief  Sends data message to the gateway
     @param  profile_id: Profile_id
     @param  data: void pointer to raw data
     @param  length: number of bytes used to store data
 */
-bool send_data(uint32_t profile_id, void *data, uint32_t length);
+bool send_data(uint32_t profile_id, void *data = NULL, uint32_t length = 0);
 
 #endif

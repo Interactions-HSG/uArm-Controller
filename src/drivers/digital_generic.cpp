@@ -43,7 +43,7 @@ void run_digital_generic(uint32_t profile_id, A_Digital_Generic action)
     {
         digitalWrite((uint8_t)profile.pin, (uint8_t)action.output);
         /* give feedback on action */
-        send_done(profile_id);
+        send_data(profile_id);
     }
     /* action: read digital pin in blocking mode */
     else if (profile.mode != DigitalMode_OUTPUT && !(action.event_triggered))

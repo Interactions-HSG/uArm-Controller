@@ -9,8 +9,7 @@ enum ResponseCode {
   DEBUG = 0; // (default)
   ERROR = 1;
   ACK = 2;  // used to acknowledge action (for non-blocking events)
-  DONE = 3; // used to give feedback without data
-  DATA = 4; // used for response messages with data
+  DATA = 3; // used for response messages with data
 }
 
 // Definition of digital pin modes
@@ -40,8 +39,7 @@ enum UartPort {
 message Response {
   ResponseCode code = 1; // used for feedback message handling
   uint32 profile_id = 2; // used to identify profile
-  string message = 3;    // used for debugging messages
-  bytes data = 4;        // holds all response data
+  bytes payload = 3;
 }
 
 // message sent from gateway to controller

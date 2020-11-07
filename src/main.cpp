@@ -224,7 +224,7 @@ void registration_handler(Registration registration)
   // send confirmation if registration successfull
   if (!setup_flag && reg_success)
   {
-    send_done(registration.profile_id);
+    send_data(registration.profile_id);
     // use profile manager to save new registration on profile_manager.profiles + on SD card
     profile_manager.register_profile(registration);
   }
