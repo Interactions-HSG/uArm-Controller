@@ -1,5 +1,5 @@
-#ifndef _TEMPLATE_DRIVER_H_
-#define _TEMPLATE_DRIVER_H_
+#ifndef _COLOR_SENSOR_H_
+#define _COLOR_SENSOR_H_
 
 #include "main.h"
 
@@ -9,15 +9,15 @@
 
 /**************************************************************************/
 /*!
-    @brief  Initialization function for template_driver driver
+    @brief  Initialization function for color_sensor driver
     @return boolean if initialization was successful or not
 */
-bool init_template_driver(uint32_t profile_id, R_Template_Driver profile);
+bool init_color_sensor(uint32_t profile_id, R_Color_Sensor profile);
 
 /**************************************************************************/
 /*!
-    @brief  Action function for template_driver ddriver
+    @brief  Action function for color_sensor ddriver
 */
-void run_template_driver(uint32_t profile_id, A_Template_Driver action);
+void run_color_sensor(uint32_t profile_id, A_Color_Sensor action);
 
 #endif

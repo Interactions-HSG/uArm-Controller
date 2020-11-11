@@ -8,11 +8,14 @@ This module provides a serial handler to communicate with uArm Controller Arduin
 import sys
 import threading
 import time
+import math
+import os
 
 
 import logging
 import serial
 import serial.threaded
+from enum import Enum
 
 import line_protocol_pb2
 
@@ -24,29 +27,72 @@ BAUDRATE = 115200
 
 """" ---------- Classes for profiles ---------- """
 
-class Profile:
-    """ Parent class for profiles.
+
+class ProfileState(Enum):
+    """Enum to define possible profile states.
 
     Attributes:
+        UNREG: Unregistered (profile needs first to be registered on the MCU)
+        IDLE: Profile is registered and available
+        BLOCKING: Profile is waiting for ACK or DATA => Blocking state for entire MCU
+        WAITING: Profile is waiting for response/data => Non-Blocking state for other profiles
+    """
+
+    UNREG = 1
+    IDLE = 2
+    BLOCKING = 3
+    WAITING = 4
+
+
+class ProfileManager(list):
+    """ Class to manage registered/created profiles. """
+
+    def get_profile(self, profile_id):
+        for profile in self:
+            if profile.profile_id == profile_id:
+                return profile
+
+
+class Profile:
+    """Parent class for profiles.
+
+    Attributes:
+        profile_state: Current state of the profile
         profile_id: The unique identifier for the profile.
     """
 
     # state of profile: if profile is successfully registered on MCU
-    is_registered = False
+    profile_state = ProfileState.UNREG
+
     def __init__(self, profile_id):
         self.profile_id = profile_id
+        # save profile in list and delete profile with same id
+        profile = profiles.get_profile(profile_id)
+        if profile is not None:
+            profiles.remove(profile)
+        profiles.append(self)
 
-    def create_profile(self):
-        pass
+    def register_wait(self):
+        """ Function to wait until profile is registered """
+        # TODO: implement timeout?
+        while self.profile_state == ProfileState.UNREG:
+            time.sleep(0.1)
+
+    def action_wait(self):
+        """ Function to wait until profile is registered """
+        # TODO: implement timeout?
+        while self.profile_state == ProfileState.BLOCKING:
+            time.sleep(0.1)
 
 
 class DigitalGeneric(Profile):
     """ Profile for digital generic driver """
+
     # state of pin: True -> HIGH, False -> LOW
     pin_state = False
 
     def __init__(self, profile_id, pin, mode):
-        """ The constructor creates an instance of a digital generic profile.
+        """The constructor creates an instance of a digital generic profile.
 
         Args:
             profile_id ([uint8]): unique profile id
@@ -57,7 +103,7 @@ class DigitalGeneric(Profile):
         self.mode = mode
         super().__init__(profile_id)
 
-    def create_profile(self):
+    def register_profile(self):
         """ register new profile on MCU """
         req = line_protocol_pb2.Request()
         # pylint: disable=no-member
@@ -66,21 +112,70 @@ class DigitalGeneric(Profile):
         req.registration.r_digital_generic.mode = self.mode
         controller.send(req.SerializeToString())
         logging.info(" Registration sent for Profile: %i", self.profile_id)
+        super().register_wait()
 
     def write_digital(self, output):
-        """ write digital pin to HIGH/LOW """
+        """ Write digital pin to HIGH/LOW """
         req = line_protocol_pb2.Request()
         # pylint: disable=no-member
         req.action.profile_id = self.profile_id
-        req.action.a_digital_generic.pin = self.pin
         req.action.a_digital_generic.output = output
         controller.send(req.SerializeToString())
         if output == line_protocol_pb2.HIGH:
-            logging.info(" Digital pin action: HIGH sent (Profile: %i)", self.profile_id)
-            self.pin_state = True    # IDEA: do this on receiving ack
+            logging.info(
+                " Digital pin action: HIGH sent (Profile: %i)", self.profile_id
+            )
+            self.pin_state = True  # IDEA: do this on receiving ack
         elif output == line_protocol_pb2.LOW:
-            logging.info(" Digital pin action: LOW sent (Profile: %i)", self.profile_id)
-            self.pin_state = False   # IDEA: do this on receiving ack
+            logging.info(
+                " Digital pin action: LOW sent (Profile: %i)", self.profile_id)
+            self.pin_state = False  # IDEA: do this on receiving ack
+        self.profile_state = ProfileState.BLOCKING
+        super().action_wait()
+
+    def read_digital(self):
+        """ Read digital pin """
+        req = line_protocol_pb2.Request()
+        # pylint: disable=no-member
+        req.action.profile_id = self.profile_id
+        req.action.a_digital_generic.event_triggered = False
+        controller.send(req.SerializeToString())
+        logging.info(
+            " Digital pin action: Read pin (Profile: %i)", self.profile_id)
+        self.profile_state = ProfileState.BLOCKING
+        super().action_wait()
+        return self.pin_state
+
+    def read_event_digital(self, trigger_value):
+        """Start event listening for digital pin.
+
+        Args:
+            trigger_value (HIGH/LOW): used to set value on which event will be triggered
+        """
+        req = line_protocol_pb2.Request()
+        # pylint: disable=no-member
+        req.action.profile_id = self.profile_id
+        req.action.a_digital_generic.output = trigger_value
+        req.action.a_digital_generic.event_triggered = True
+        controller.send(req.SerializeToString())
+        logging.info(
+            " Digital pin action: Start event listening (Profile: %i)", self.profile_id
+        )
+        self.profile_state = ProfileState.BLOCKING
+        super().action_wait()
+
+    def data_handler(self, data):
+        """Handles incoming data from actions or events.
+
+        Args:
+            data (byte): 1:LOW or 2:HIGH (added one to avoid empty byte)
+        """
+        self.pin_state = ord(data) - 1
+        logging.info(
+            ">> Digital DATA: received state: %i (Profile: %i)",
+            self.pin_state,
+            self.profile_id,
+        )
 
 
 class UartTTLGeneric(Profile):
@@ -92,12 +187,15 @@ class UartTTLGeneric(Profile):
             port ([type]): [description]
             baudrate ([type]): [description]
         """
-
         self.port = port
         self.baudrate = baudrate
         super().__init__(profile_id)
 
-    def create_profile(self):
+    def create_cmd_list(self, cmd_list):
+        self.cmd_list = cmd_list
+        self.cmd_list_iterator = iter(self.cmd_list)
+
+    def register_profile(self):
         """ register new profile on MCU """
         req = line_protocol_pb2.Request()
         # pylint: disable=no-member
@@ -106,83 +204,387 @@ class UartTTLGeneric(Profile):
         req.registration.r_uart_ttl_generic.baudrate = self.baudrate
         controller.send(req.SerializeToString())
         logging.info(" UART: Registration sent (Profile: %i)", self.profile_id)
+        super().register_wait()
 
-    def send_command(self, command):
+    def send_next(self):
+        """ send next command in command list """
+        command = next(self.cmd_list_iterator, False)
+        if command:
+            self.send_command(command[0], command[1])
+
+    def send_command(self, command, event):
         """ Send command to UART2/3 """
         req = line_protocol_pb2.Request()
         # pylint: disable=no-member
         req.action.profile_id = self.profile_id
         req.action.a_uart_ttl_generic.command = command
+        req.action.a_uart_ttl_generic.event_triggered = event
         controller.send(req.SerializeToString())
         logging.info(" UART: Command sent (Profile: %i)", self.profile_id)
+        self.profile_state = ProfileState.BLOCKING
+        super().action_wait()
 
+    def data_handler(self, data):
+        """Handles incoming data from actions or events.
+
+        Args:
+            data (char[]): char array containing the uArm feedback message
+        """
+        logging.info(">> UART TTL Response: %s", data.decode("utf-8"))
+
+
+class ColorSensor(Profile):
+    """ Profile for color_sensor driver 
+
+        TODO: implement event handling => event on specific color range    
+    """
+
+    def __init__(self, profile_id):
+        """The constructor creates an instance of a color_sensor profile.
+
+        Args:
+            profile_id ([uint8]): unique profile id
+        """
+        self.r = 0
+        self.g = 0
+        self.b = 0
+        self.estimated_color = "Unknown"
+        super().__init__(profile_id)
+
+    def register_profile(self):
+        """ Register new profile on MCU """
+        req = line_protocol_pb2.Request()
+        # pylint: disable=no-member
+        req.registration.profile_id = self.profile_id
+        req.registration.r_color_sensor.address = 0  # currently not used
+        controller.send(req.SerializeToString())
+        logging.info(" Registration sent for Profile: %i", self.profile_id)
+        super().register_wait()
+
+    def action_profile(self):
+        """ Action function for color_sensor profiles """
+        req = line_protocol_pb2.Request()
+        # pylint: disable=no-member
+        req.action.profile_id = self.profile_id
+        req.action.a_color_sensor.event_triggered = False  # currently not supported
+        controller.send(req.SerializeToString())
+        logging.info(
+            " Read request for color sensor sent (Profile: %i)", self.profile_id
+        )
+        self.profile_state = ProfileState.BLOCKING
+        super().action_wait()
+
+    def _estimate_color(self):
+        _red = [165, 57, 52, "Red"]
+        _yellow = [255, 255, 110, "Yellow"]
+        _green = [49, 90, 65, "Green"]
+        _wood = [201, 186, 126, "Wood"]
+        _colors = [_red, _yellow, _green, _wood]
+        _distances = [0, 0, 0, 0]
+        for i, color in enumerate(_colors):
+            _distances[i] = math.sqrt(
+                (color[0]-self.r)**2 + (color[1]-self.g)**2 + (color[2]-self.b)**2)
+        min_index = _distances.index(min(_distances))
+        self.estimated_color = _colors[min_index][3]
+
+    def data_handler(self, data):
+        """Handles incoming data from actions or events.
+
+        Args:
+            data (byte[3]): RGB value with one byte for each color
+        """
+        self.r = data[0]
+        self.g = data[1]
+        self.b = data[2]
+        logging.info(
+            ">> Color sensor DATA: R: %i, G: %i, B: %i (Profile: %i)",
+            self.r,
+            self.g,
+            self.b,
+            self.profile_id,
+        )
+        self._estimate_color()
+        logging.info("Estimated color: %s", self.estimated_color)
+
+
+class UltrasonicSensor(Profile):
+    """ Profile for ultrasonic_sensor driver """
+
+    def __init__(self, profile_id, pin):
+        """The constructor creates an instance of a ultrasonic_sensor profile.
+
+        Args:
+            profile_id ([uint8]): unique profile id
+            pin ([uint32]): pin number for SIG: receiver/transmitter
+        """
+        self.pin = pin
+        super().__init__(profile_id)
+
+    def register_profile(self):
+        """ Register new profile on MCU """
+        req = line_protocol_pb2.Request()
+        # pylint: disable=no-member
+        req.registration.profile_id = self.profile_id
+        req.registration.r_ultrasonic_sensor.pin = self.pin
+        controller.send(req.SerializeToString())
+        logging.info(" Registration sent for Profile: %i", self.profile_id)
+        super().register_wait()
+
+    def action_profile(self):
+        """ Action function for ultrasonic_sensor profiles """
+        req = line_protocol_pb2.Request()
+        # pylint: disable=no-member
+        req.action.profile_id = self.profile_id
+        req.action.a_ultrasonic_sensor.event_triggered = False  # not supported
+        controller.send(req.SerializeToString())
+        logging.info(
+            "Ultrasonic sensor: sent action (Profile: %i)", self.profile_id)
+        self.profile_state = ProfileState.BLOCKING
+        super().action_wait()
+
+    def data_handler(self, data):
+        """Handles incoming data from actions or events.
+
+        Args:
+            data (uint16): int containing distance in cm
+        """
+        # first bit is used as flag to avoid null bytes
+        distance = (data[0] & 0b01111111) + (data[1] & 0b01111111)*128
+        logging.info(
+            ">> Utrasonic sensor DATA: distance: %i cm (Profile: %i)",
+            distance,
+            self.profile_id,
+        )
+
+
+class StepLowlevel(Profile):
+    """ Profile for step_lowlevel driver """
+
+    def __init__(self, profile_id):  # TODO: add
+        """The constructor creates an instance of a step_lowlevel profile.
+
+        Args:
+            profile_id ([uint8]): unique profile id
+        """
+        # TODO: add fields (e.g. self.pin = pin)
+        super().__init__(profile_id)
+
+    def register_profile(self):
+        """ Register new profile on MCU """
+        req = line_protocol_pb2.Request()
+        # pylint: disable=no-member
+        req.registration.profile_id = self.profile_id
+        # TODO: add fields for registration
+        controller.send(req.SerializeToString())
+        logging.info(" Registration sent for Profile: %i", self.profile_id)
+        super().register_wait()
+
+    def action_profile(self):  # TODO: add arguments for fields
+        """ Action function for step_lowlevel profiles """
+        req = line_protocol_pb2.Request()
+        # pylint: disable=no-member
+        req.action.profile_id = self.profile_id
+        # TODO: add fields for action function
+        controller.send(req.SerializeToString())
+        self.profile_state = ProfileState.BLOCKING
+        super().action_wait()
+
+    def data_handler(self, data):
+        """Handles incoming data from actions or events.
+
+        Args:
+            data ([type]): TODO: has to be defined
+        """
+        # TODO: implement data handling
+        pass
+
+
+# ADI-PY-Profile: Label for automatic driver initialization (Do not move!)
 
 """" ---------- Classes for protobuf message handling ---------- """
 
+
 class ControllerPacketHandler(serial.threaded.Packetizer):
     """Callback for received packet"""
-    def handle_packet(self, packet):
-        feedback = line_protocol_pb2.Feedback()
-        feedback.ParseFromString(packet)
-        # pylint: disable=no-member
-        logging.info(">> Profile_ID: %d, Message: %s", feedback.profile_id, repr(feedback.message))
-        # print entire msg for debugging
-        #print(feedback.__str__())
 
-        """ if message is registration acknowledgement => set corresponding is_registrated field """
-        # TODO: use feedback code field instead of message => needs to be implemented first
-        if feedback.message == "Registration was successful":
-            for profile in profiles:
-                if profile.profile_id == feedback.profile_id:
-                    # set registration status to true
-                    profile.is_registered = True
-                    break
-            else:
-                logging.error("received profile does not exist")
+    def handle_packet(self, packet):
+        response = line_protocol_pb2.Response()
+        response.ParseFromString(packet)
+        # pylint: disable=no-member
+
+        # print entire msg for debugging
+        # print(response.__str__())
+        if response.code == line_protocol_pb2.DEBUG:
+            logging.debug(">> %s", response.payload.decode("utf-8"))
+        elif response.code == line_protocol_pb2.ERROR:
+            logging.error(
+                ">> Profile: %i %s",
+                response.profile_id,
+                response.payload.decode("utf-8")
+            )
+        elif response.code == line_protocol_pb2.ACK:
+            profile = profiles.get_profile(response.profile_id)
+            profile.profile_state = ProfileState.WAITING
+            logging.info(">> ACK for profile: %s received",
+                         response.profile_id)
+        elif response.code == line_protocol_pb2.DATA:
+            profile = profiles.get_profile(response.profile_id)
+            if profile.profile_state == ProfileState.UNREG:
+                """ DATA for registration """
+                profile.profile_state = ProfileState.IDLE
+                logging.info(
+                    ">> Registration DATA for profile: %s received",
+                    response.profile_id)
+            elif profile.profile_state == ProfileState.BLOCKING:
+                profile.profile_state = ProfileState.IDLE
+                logging.info(
+                    ">> Action DATA for profile: %s received", response.profile_id
+                )
+                if not len(response.payload) == 0:
+                    profile.data_handler(response.payload)
+            elif profile.profile_state == ProfileState.WAITING:
+                profile.profile_state = ProfileState.IDLE
+                logging.info(
+                    ">> Event DATA for profile: %s received", response.profile_id
+                )
+                if not len(response.payload) == 0:
+                    profile.data_handler(response.payload)
 
 
 class Controller(serial.threaded.ReaderThread):
-    """
-    """
+    """"""
+
     def __init__(self, serial_device, event_handler):
         """
         The constructor creates a serial instance for given dev/url with a preset option
         :param serial_device: device or url for the serial interface
         :param event_handler: event handler of class ControllerHandler
         """
-        serial_instance = serial.serial_for_url(serial_device, baudrate=115200, timeout=1)
+        serial_instance = serial.serial_for_url(
+            serial_device, baudrate=115200, timeout=1
+        )
         super(Controller, self).__init__(serial_instance, event_handler)
 
     def send(self, protobuf):
         """ send the given protobuf message """
         self.serial.write(protobuf)
-        self.serial.write(b'\0')
+        self.serial.write(b"\0")
         return
 
 
 """" ---------- Profile creations ---------- """
 
-# list of all profiles
-profiles = []
+# create list of all profiles
+profiles = ProfileManager()
+
+# define used Profile IDs (div: green will change to blue)
+red_LED_profile_id = 1
+div_LED_profile_id = 2
+button_A_profile_id = 5
+uArm1_profile_id = 10
+uArm2_profile_id = 11
+color_sensor_id = 20
+ultrasonic_sensor_id = 21
+tube_sensor_id = 22
 
 # create profile for red LED
-red_LED_profile = DigitalGeneric( 1, 2, line_protocol_pb2.OUTPUT)
-profiles.append(red_LED_profile)
+DigitalGeneric(red_LED_profile_id, 2, line_protocol_pb2.OUTPUT)
 # create profile for green LED
-green_LED_profile = DigitalGeneric( 2, 3, line_protocol_pb2.OUTPUT)
-profiles.append(green_LED_profile)
+DigitalGeneric(div_LED_profile_id, 3, line_protocol_pb2.OUTPUT)
+# create profile for button A (event triggered)
+DigitalGeneric(button_A_profile_id, 47, line_protocol_pb2.INPUT_PULLUP)
 # create profile for UART2-TTL: uArm1
-uArm1_profile = UartTTLGeneric( 10, line_protocol_pb2.UART2, BAUDRATE)
-profiles.append(uArm1_profile)
+UartTTLGeneric(uArm1_profile_id, line_protocol_pb2.UART2, BAUDRATE)
+profiles.get_profile(uArm1_profile_id).create_cmd_list(
+    [("G0 X180 Y0 Z160 F50\n", True),
+     ("M2210 F2000 T200\n", False),
+     ("M2210 F1000 T300\n", False),
+     ("G0 X180 Y50 Z100 F50\n", True),
+     ("M2210 F1000 T200\n", False),
+     ("P2220\n", False),
+     ("G0 X180 Y100 Z180 F50\n", True),
+     ("M2210 F1000 T200\n", False),
+     ("P2220\n", False),
+     ("M2231 V1\n", True),
+     ("G0 X180 Y50 Z100 F50\n", True),
+     ("M2210 F1000 T200\n", False),
+     ("P2220\n", False),
+     ("M2231 V0\n", True),
+     ("M2210 F1000 T300\n", False),
+     ("M2210 F2000 T200\n", False),
+     ])
 # create profile for UART3-TTL: uArm2
-uArm2_profile = UartTTLGeneric( 11, line_protocol_pb2.UART3, BAUDRATE)
-profiles.append(uArm2_profile)
+# UartTTLGeneric(uArm2_profile_id, line_protocol_pb2.UART3, BAUDRATE)
+
+# create profile for color sensor
+ColorSensor(color_sensor_id)
+# create profile for ultrasonic sensor
+UltrasonicSensor(ultrasonic_sensor_id, 23)
+# create profile for tube sensor
+DigitalGeneric(tube_sensor_id, 25, line_protocol_pb2.INPUT_PULLUP)
+
+
+def subroutine_test():
+    """ Subroutine to test combination of sensors/actuators """
+    # get needed profiles
+    uArm_profile = profiles.get_profile(uArm1_profile_id)
+    color_profile = profiles.get_profile(color_sensor_id)
+    tube_profile = profiles.get_profile(tube_sensor_id)
+
+    # reset uArm
+    uArm_profile.send_command("G0 X180 Y0 Z160 F50\n", False)
+    uArm_profile.send_command("M2210 F2000 T200\n", False)
+    uArm_profile.send_command("M2210 F1000 T300\n", False)
+
+    # counter used for number of colored cubes
+    num_color_cubes = 0
+
+    # while cube available on ramp
+    while not tube_profile.read_digital():
+        # robot to ramp
+        uArm_profile.send_command("G0 X84 Y-160 Z90 F100\n", False)
+        uArm_profile.send_command("G0 X84 Y-160 Z50 F5\n", False)
+        # pump on
+        uArm_profile.send_command("M2231 V1\n", False)
+        time.sleep(1)
+        uArm_profile.send_command("G0 X84 Y-160 Z90 F5\n", False)
+
+        # robot go to color sensor
+        uArm_profile.send_command("G0 X141 Y-76 Z70 F50\n", False)
+        uArm_profile.send_command("G0 X141 Y-76 Z46 F5\n", False)
+        # Color sensor: measure color
+        color_profile.action_profile()
+        uArm_profile.send_command("G0 X141 Y-76 Z55 F5\n", False)
+
+        if color_profile.estimated_color == "Wood":
+            uArm_profile.send_command("G0 X104 Y160 Z55 F50\n", False)
+            uArm_profile.send_command("G0 X104 Y160 Z28 F5\n", False)
+            # pump off
+            uArm_profile.send_command("M2231 V0\n", False)
+            uArm_profile.send_command("G0 X104 Y160 Z55 F50\n", False)
+        else:
+            num_color_cubes += 1
+            end_destination = num_color_cubes*30
+            uArm_profile.send_command(
+                "G0 X178 Y160 Z{} F50\n".format(end_destination + 10), False)
+            uArm_profile.send_command(
+                "G0 X178 Y160 Z{} F5\n".format(end_destination), False)
+            # pump off
+            uArm_profile.send_command("M2231 V0\n", False)
+            uArm_profile.send_command(
+                "G0 X178 Y160 Z{} F5\n".format(end_destination + 10), False)
+
+    # go to start position
+    uArm_profile.send_command("G0 X180 Y0 Z160 F100\n", False)
+    uArm_profile.send_command("M2210 F1000 T300\n", False)
+    uArm_profile.send_command("M2210 F2000 T200\n", False)
 
 
 """" ---------- Main ---------- """
 
-if __name__ == '__main__':
-    logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+if __name__ == "__main__":
+    logging.basicConfig(format="%(levelname)s:%(message)s",
+                        level=logging.DEBUG)
 
     controller = Controller(sys.argv[1], ControllerPacketHandler)
     controller.start()
@@ -190,36 +592,88 @@ if __name__ == '__main__':
 
     """ register all profiles"""
     for profile in profiles:
-        profile.create_profile()
-        while not profile.is_registered:
-            time.sleep(0.1)
+        profile.register_profile()
 
-    while True:
-        """ toggle red LED """
-        if red_LED_profile.is_registered and red_LED_profile.pin_state:
-            """ send action to turn led off"""
-            red_LED_profile.write_digital(line_protocol_pb2.LOW)
-        elif red_LED_profile.is_registered and not red_LED_profile.pin_state:
-            """ send action to turn led on"""
-            red_LED_profile.write_digital(line_protocol_pb2.HIGH)
-        time.sleep(1)
-        #TODO: implement better blocking mechanism (similar to registration blocking)
+    counter = 0
+    simple_tests = True
 
-        """ toggle green LED """
-        if green_LED_profile.is_registered and green_LED_profile.pin_state:
-            """ send action to turn led off"""
-            green_LED_profile.write_digital(line_protocol_pb2.LOW)
-        elif green_LED_profile.is_registered and not green_LED_profile.pin_state:
-            """ send action to turn led on"""
-            green_LED_profile.write_digital(line_protocol_pb2.HIGH)
-        time.sleep(1)
+    while simple_tests:
+
+        """ Test for tube Sensor """
+        profile = profiles.get_profile(tube_sensor_id)
+        if profile is not None:
+            if profile.profile_state == ProfileState.IDLE:
+                profile.read_digital()
+
+        """ Test for Ultrasonic Sensor driver """
+        profile = profiles.get_profile(ultrasonic_sensor_id)
+        if profile is not None:
+            if profile.profile_state == ProfileState.IDLE:
+                profile.action_profile()
+
+        """ Test for Color Sensor driver """
+        profile = profiles.get_profile(color_sensor_id)
+        if profile is not None:
+            if profile.profile_state == ProfileState.IDLE:
+                profile.action_profile()
+
+        """ Test for event handling: call event for button A """
+        profile = profiles.get_profile(button_A_profile_id)
+        if profile is not None:
+            if profile.profile_state == ProfileState.IDLE:
+                profile.read_event_digital(line_protocol_pb2.LOW)
+
+        """ Test: updating profile """
+        if counter == 4:
+            # create profile for blue LED (same ID as green!)
+            profile = DigitalGeneric(
+                div_LED_profile_id, 5, line_protocol_pb2.OUTPUT)
+            profile.register_profile()
+        elif counter == 9:
+            # create profile for green LED (same ID as blue => overwritten!)
+            profile = DigitalGeneric(
+                div_LED_profile_id, 3, line_protocol_pb2.OUTPUT)
+            profile.register_profile()
+        counter = (counter + 1) % 10
+
+        """ Test: toggle green/blue LED """
+        profile = profiles.get_profile(div_LED_profile_id)
+        if profile is not None:
+            if profile.profile_state == ProfileState.IDLE:
+                if profile.pin_state:
+                    """ send action to turn led off"""
+                    profile.write_digital(line_protocol_pb2.LOW)
+                else:
+                    """ send action to turn led on"""
+                    profile.write_digital(line_protocol_pb2.HIGH)
 
         """ send gcode command to uArm1 """
-        if uArm1_profile.is_registered:
-            uArm1_profile.send_command("G0 X180 Y0 Z160 F500\n")
-        time.sleep(1)
+        profile = profiles.get_profile(uArm1_profile_id)
+        if profile is not None:
+            if profile.profile_state == ProfileState.IDLE:
+                # profile.send_command(" P2220\n", False)
+                profile.send_next()
 
-        #""" send gcode command to uArm2 """
-        #if uArm2_profile.is_registered:
-        #    uArm2_profile.send_command("G0 X100 Y100 Z120 F500\n")
-        #time.sleep(1)
+        """ Test: toggle red LED """
+        profile = profiles.get_profile(red_LED_profile_id)
+        if profile is not None:
+            if profile.profile_state == ProfileState.IDLE:
+                if profile.pin_state:
+                    """ send action to turn led off"""
+                    profile.write_digital(line_protocol_pb2.LOW)
+                else:
+                    """ send action to turn led on"""
+                    profile.write_digital(line_protocol_pb2.HIGH)
+
+    # try:
+    #     subroutine_test()
+    # except KeyboardInterrupt:
+    #     uArm_profile = profiles.get_profile(uArm1_profile_id)
+    #     uArm_profile.send_command("M2231 V0\n", False)
+    #     # TODO: implement proper interrupt handling
+    #     #uArm_profile.send_command("G0 X180 Y0 Z160 F50\n", False)
+    #     print('Interrupted')
+    #     try:
+    #         sys.exit(0)
+    #     except SystemExit:
+    #         os._exit(0)

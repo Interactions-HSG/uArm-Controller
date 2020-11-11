@@ -1,0 +1,5 @@
+
+// Action message for Template_Driver driver
+message A_Template_Driver {
+    //TODO: define the action message structure
+}

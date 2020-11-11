@@ -1,0 +1,5 @@
+
+  case Registration_r_template_driver_tag:
+    //call initialization function of template_driver driver
+    reg_success = init_template_driver(registration.profile_id, registration.driver.r_template_driver);
+    break;

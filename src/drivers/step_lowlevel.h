@@ -1,5 +1,5 @@
-#ifndef _TEMPLATE_DRIVER_H_
-#define _TEMPLATE_DRIVER_H_
+#ifndef _STEP_LOWLEVEL_H_
+#define _STEP_LOWLEVEL_H_
 
 #include "main.h"
 
@@ -9,15 +9,15 @@
 
 /**************************************************************************/
 /*!
-    @brief  Initialization function for template_driver driver
+    @brief  Initialization function for step_lowlevel driver
     @return boolean if initialization was successful or not
 */
-bool init_template_driver(uint32_t profile_id, R_Template_Driver profile);
+bool init_step_lowlevel(uint32_t profile_id, R_Step_Lowlevel profile);
 
 /**************************************************************************/
 /*!
-    @brief  Action function for template_driver ddriver
+    @brief  Action function for step_lowlevel ddriver
 */
-void run_template_driver(uint32_t profile_id, A_Template_Driver action);
+void run_step_lowlevel(uint32_t profile_id, A_Step_Lowlevel action);
 
 #endif

@@ -1,4 +1,4 @@
-#include "template_driver.h"
+#include "step_lowlevel.h"
 
 /*========================================================================*/
 /*                          FUNCTION DEFINITIONS                          */
@@ -6,18 +6,18 @@
 
 /**************************************************************************/
 /*!
-    TODO: Description of initialization function for template_driver
+    TODO: Description of initialization function for step_lowlevel
 */
-bool init_template_driver(uint32_t profile_id, R_Template_Driver profile)
+bool init_step_lowlevel(uint32_t profile_id, R_Step_Lowlevel profile)
 {
     // TODO: implement initialization
 }
 
 /**************************************************************************/
 /*!
-    TODO: Description of action function for template_driver
+    TODO: Description of action function for step_lowlevel
 */
-void run_template_driver(uint32_t profile_id, A_Template_Driver action)
+void run_step_lowlevel(uint32_t profile_id, A_Step_Lowlevel action)
 {
 
     // TODO: implement action function

@@ -1,13 +1,20 @@
 syntax = "proto3";
 
-
 /*========================================================================*/
 /*                          ENUM DEFINTIONS                               */
 /*========================================================================*/
 
+// Definition of feedback response codes
+enum ResponseCode {
+  DEBUG = 0; // (default)
+  ERROR = 1;
+  ACK = 2;  // used to acknowledge action (for non-blocking events)
+  DATA = 3; // used for response messages with data
+}
+
 // Definition of digital pin modes
 enum DigitalMode {
-  INPUT = 0;  // (default)
+  INPUT = 0; // (default)
   OUTPUT = 1;
   INPUT_PULLUP = 2;
 }
@@ -24,17 +31,15 @@ enum UartPort {
   UART3 = 1;
 }
 
-
 /*========================================================================*/
 /*                  MAIN MESSAGES: REQUEST + FEEDBACK                     */
 /*========================================================================*/
 
 // message sent from controller to gateway
-message Feedback {
-  //int32 code = 1;   // maybe needed for future feedback message handling
-  uint32 profile_id = 1;  // used to identify profile
-  string message = 2;     // used for debugging messages
-  bytes data = 3;
+message Response {
+  ResponseCode code = 1; // used for feedback message handling
+  uint32 profile_id = 2; // used to identify profile
+  bytes payload = 3;
 }
 
 // message sent from gateway to controller
@@ -43,12 +48,8 @@ message Request {
   oneof request_type {
     Action action = 1;
     Registration registration = 2;
-    //IDEA: used to delete profile in registered profiles 
-    // => problem: if profile gets deleted befor response of e.g. uArm arrives
-    //Deletion deletion = 3;
   }
 }
-
 
 /*========================================================================*/
 /*                  SUB MESSAGES: ACTION + REGISTRATION                   */
@@ -56,46 +57,67 @@ message Request {
 
 // Actions: request on existing/registered field devices
 message Action {
-  uint32 profile_id = 1;  // unique identification of profile
-  // Driver: which driver is used for the profile registration (R_ for Registration msg)
+  uint32 profile_id = 1; // unique identification of profile
+  // Driver: which driver is used for the profile registration (R_ for
+  // Registration msg)
   oneof driver {
     A_Digital_Generic a_digital_generic = 2;
     A_UART_TTL_Generic a_uart_ttl_generic = 3;
-    //A_IIC_Generic a_iic_generic = 4;
-    //A_Digital_Ultrasonic a_digital_ultrasonic = 5;
-    // ...
+    A_Color_Sensor a_color_sensor = 4;
+    A_Ultrasonic_Sensor a_ultrasonic_sensor = 5;
+    A_Step_Lowlevel a_step_lowlevel = 6;
+    // ADI-PROTO-Oneof-Action: Label for automatic driver initialization (Do not
+    // move!)
   }
 }
 
 // Registration: request to register/initialize new field devices/ profiles
 message Registration {
-  uint32 profile_id = 1;      // unique identification of profile
-  // Driver: which driver is used for the profile registration (R_ for Registration msg)
+  uint32 profile_id = 1; // unique identification of profile
+  // Driver: which driver is used for the profile registration (R_ for
+  // Registration msg)
   oneof driver {
     R_Digital_Generic r_digital_generic = 2;
     R_UART_TTL_Generic r_uart_ttl_generic = 3;
-    //R_IIC_Generic r_iic_generic = 4;
-    //R_Digital_Ultrasonic r_digital_ultrasonic = 5;
-    // ...
+    R_Color_Sensor r_color_sensor = 4;
+    R_Ultrasonic_Sensor r_ultrasonic_sensor = 5;
+    R_Step_Lowlevel r_step_lowlevel = 6;
+    // ADI-PROTO-Oneof-Reg: Label for automatic driver initialization (Do not
+    // move!)
   }
 }
-
 
 /*========================================================================*/
 /*                  ACTION DRIVER MESSAGES                                */
 /*========================================================================*/
 
-// Registration message for Digital generic driver
+// Action message for Digital generic driver
 message A_Digital_Generic {
-  uint32 pin = 1;
-  DigitalOutput output = 2;
+  DigitalOutput output = 1; // used to write pin or to set event trigger
+  bool event_triggered = 2; // indicates if response is on event or on request
 }
 
-// Registration message for UART-ttl generic driver
+// Action message for UART-ttl generic driver
 message A_UART_TTL_Generic {
   string command = 1;
+  bool event_triggered = 2; // indicates if response is on event or on request
 }
 
+// Action message for Color_Sensor driver
+message A_Color_Sensor {
+  bool event_triggered = 1; // indicates if response is on event or on request
+}
+
+// Action message for Ultrasonic_Sensor driver
+message A_Ultrasonic_Sensor {
+  bool event_triggered = 1; // indicates if response is on event or on request
+}
+
+// Action message for Step_Lowlevel driver
+message A_Step_Lowlevel {
+  // TODO: define the action message structure
+}
+// ADI-PROTO-Action: Label for automatic driver initialization (Do not move!)
 
 /*========================================================================*/
 /*                  REGISTRATION DRIVER MESSAGES                          */
@@ -112,3 +134,16 @@ message R_UART_TTL_Generic {
   UartPort port = 1;
   uint32 baudrate = 2;
 }
+
+// Registration message for Color_Sensor driver
+message R_Color_Sensor { uint32 address = 1; }
+
+// Registration message for Ultrasonic_Sensor driver
+message R_Ultrasonic_Sensor { uint32 pin = 1; }
+
+// Registration message for Step_Lowlevel driver
+message R_Step_Lowlevel {
+  // TODO: define the registration message structure
+}
+// ADI-PROTO-Reg: Label for automatic driver initialization (Do not move!)
+// END: needed for proper driver initialization

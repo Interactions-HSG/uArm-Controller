@@ -1,0 +1,5 @@
+
+  case Action_a_template_driver_tag:
+    // call action function of template_driver driver
+    run_template_driver(action.profile_id, action.driver.a_template_driver);
+    break;
