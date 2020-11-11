@@ -4,7 +4,7 @@ PlatformIO project for the UFACTORY uArm Controller.
 
 ## Device Profile FSM
 Following figure shows the possible states and transitions of a device profile:
-![FSM](./images/Device_Profile_FSM.jpg)
+![FSM](https://user-images.githubusercontent.com/26181/98770955-a18f3f00-23e3-11eb-87cb-f92db472a9bf.jpg)
 - `UNREG`: The profile is created, but not registered/initialized yet
 - `Idle`: The profile is in idle mode, ready for a new request.
 - `BLOCKING`: The profile is blocking all other profiles until a response gets received.
