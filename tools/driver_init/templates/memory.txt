@@ -1,9 +1,9 @@
 
-class StepLowlevel(Profile):
-    """ Profile for step_lowlevel driver """
+class McuDriver(Profile):
+    """ Profile for mcu_driver driver """
 
     def __init__(self, profile_id):  # TODO: add
-        """The constructor creates an instance of a step_lowlevel profile.
+        """The constructor creates an instance of a mcu_driver profile.
 
         Args:
             profile_id ([uint8]): unique profile id
@@ -22,7 +22,7 @@ class StepLowlevel(Profile):
         super().register_wait()
 
     def action_profile(self):  # TODO: add arguments for fields
-        """ Action function for step_lowlevel profiles """
+        """ Action function for mcu_driver profiles """
         req = line_protocol_pb2.Request()
         # pylint: disable=no-member
         req.action.profile_id = self.profile_id

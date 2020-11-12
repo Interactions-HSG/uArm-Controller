@@ -234,9 +234,9 @@ class UartTTLGeneric(Profile):
 
 
 class ColorSensor(Profile):
-    """ Profile for color_sensor driver 
+    """ Profile for color_sensor driver
 
-        TODO: implement event handling => event on specific color range    
+        TODO: implement event handling => event on specific color range
     """
 
     def __init__(self, profile_id):
@@ -399,7 +399,69 @@ class StepLowlevel(Profile):
         pass
 
 
+class McuDriver(Profile):
+    """ Profile for mcu_driver driver """
+
+    def __init__(self, profile_id):
+        """The constructor creates an instance of a mcu_driver profile.
+
+        Args:
+            profile_id ([uint8]): unique profile id
+        """
+        super().__init__(profile_id)
+
+    def register_profile(self):
+        """ Register new profile on MCU """
+        req = line_protocol_pb2.Request()
+        # pylint: disable=no-member
+        req.registration.profile_id = self.profile_id
+        req.registration.r_mcu_driver.SetInParent()
+        controller.send(req.SerializeToString())
+        logging.info(" Registration sent for Profile: %i", self.profile_id)
+        super().register_wait()
+
+    def get_version(self):
+        """ Action function to get current firmware version """
+        req = line_protocol_pb2.Request()
+        # pylint: disable=no-member
+        req.action.profile_id = self.profile_id
+        req.action.a_mcu_driver.mcu_action = line_protocol_pb2.VERSION
+        self.curr_request = line_protocol_pb2.VERSION
+        controller.send(req.SerializeToString())
+        self.profile_state = ProfileState.BLOCKING
+        super().action_wait()
+
+    def get_ram(self):
+        """ Action function to get free RAM space """
+        req = line_protocol_pb2.Request()
+        # pylint: disable=no-member
+        req.action.profile_id = self.profile_id
+        req.action.a_mcu_driver.mcu_action = line_protocol_pb2.RAM
+        self.curr_request = line_protocol_pb2.RAM
+        controller.send(req.SerializeToString())
+        self.profile_state = ProfileState.BLOCKING
+        super().action_wait()
+
+    def data_handler(self, data):
+        """Handles incoming data from actions or events.
+
+        Args:
+            data ([type]): TODO: has to be defined
+        """
+        if self.curr_request == line_protocol_pb2.VERSION:
+            logging.info(">> MCU firmware version: %s", data.decode("utf-8"))
+        elif self.curr_request == line_protocol_pb2.RAM:
+            # first bit is used as flag to avoid null bytes
+            ram_space = 8192
+            used_space = (data[0] & 0b01111111) + (data[1] & 0b01111111)*(2**8)
+            #used_space = 8192 - free_space
+            percentage = round((used_space/ram_space)*100, 2)
+            logging.info(">> MCU RAM: [%s%s] %i%% (used %i bytes from %i bytes)",
+                         '='*int(round(percentage/10)),
+                         ' '*(10-int(round(percentage/10))),
+                         percentage, used_space, ram_space)
 # ADI-PY-Profile: Label for automatic driver initialization (Do not move!)
+
 
 """" ---------- Classes for protobuf message handling ---------- """
 
@@ -416,6 +478,7 @@ class ControllerPacketHandler(serial.threaded.Packetizer):
         # print(response.__str__())
         if response.code == line_protocol_pb2.DEBUG:
             logging.debug(">> %s", response.payload.decode("utf-8"))
+
         elif response.code == line_protocol_pb2.ERROR:
             logging.error(
                 ">> Profile: %i %s",
@@ -427,6 +490,7 @@ class ControllerPacketHandler(serial.threaded.Packetizer):
             profile.profile_state = ProfileState.WAITING
             logging.info(">> ACK for profile: %s received",
                          response.profile_id)
+
         elif response.code == line_protocol_pb2.DATA:
             profile = profiles.get_profile(response.profile_id)
             if profile.profile_state == ProfileState.UNREG:
@@ -478,6 +542,7 @@ class Controller(serial.threaded.ReaderThread):
 profiles = ProfileManager()
 
 # define used Profile IDs (div: green will change to blue)
+mcu_driver_id = 0
 red_LED_profile_id = 1
 div_LED_profile_id = 2
 button_A_profile_id = 5
@@ -487,6 +552,8 @@ color_sensor_id = 20
 ultrasonic_sensor_id = 21
 tube_sensor_id = 22
 
+# create profile for MCU
+McuDriver(mcu_driver_id)
 # create profile for red LED
 DigitalGeneric(red_LED_profile_id, 2, line_protocol_pb2.OUTPUT)
 # create profile for green LED
@@ -596,6 +663,13 @@ if __name__ == "__main__":
 
     counter = 0
     simple_tests = True
+
+    """ get current driver version + current RAM usage """
+    profile = profiles.get_profile(mcu_driver_id)
+    if profile is not None:
+        if profile.profile_state == ProfileState.IDLE:
+            profile.get_version()
+            profile.get_ram()
 
     while simple_tests:
 

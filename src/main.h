@@ -13,6 +13,7 @@
 #include <drivers/color_sensor.h>
 #include <drivers/ultrasonic_sensor.h>
 #include <drivers/step_lowlevel.h>
+#include <drivers/mcu_driver.h>
 // ADI-MAIN-Include: Label for automatic driver initialization (Do not move!)
 
 /*========================================================================*/

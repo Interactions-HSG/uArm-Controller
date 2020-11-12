@@ -163,6 +163,11 @@ void action_handler(Action action)
     // call action function of step_lowlevel driver
     run_step_lowlevel(action.profile_id, action.driver.a_step_lowlevel);
     break;
+
+  case Action_a_mcu_driver_tag:
+    // call action function of mcu_driver driver
+    run_mcu_driver(action.profile_id, action.driver.a_mcu_driver);
+    break;
     // ADI-MAIN-Action: Label for automatic driver initialization (Do not move!)
 
   default:
@@ -209,6 +214,11 @@ void registration_handler(Registration registration)
   case Registration_r_step_lowlevel_tag:
     //call initialization function of step_lowlevel driver
     reg_success = init_step_lowlevel(registration.profile_id, registration.driver.r_step_lowlevel);
+    break;
+
+  case Registration_r_mcu_driver_tag:
+    //call initialization function of mcu_driver driver
+    reg_success = init_mcu_driver(registration.profile_id, registration.driver.r_mcu_driver);
     break;
     // ADI-MAIN-Reg: Label for automatic driver initialization (Do not move!)
 
