@@ -23,7 +23,7 @@ bool init_mcu_driver(uint32_t profile_id, R_MCU_Driver profile)
 /*!
     Action handler for MCU driver: following actions are possible:
         - Version: return firmware version
-        - RAM: get current RAM usage => not implemented yet TODO:
+        - RAM: get current RAM usage 
         - RESET: reset the MCU => not implemented yet TODO:
 */
 void run_mcu_driver(uint32_t profile_id, A_MCU_Driver action)

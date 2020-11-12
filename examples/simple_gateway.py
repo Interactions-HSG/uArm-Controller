@@ -501,18 +501,20 @@ class ControllerPacketHandler(serial.threaded.Packetizer):
                     response.profile_id)
             elif profile.profile_state == ProfileState.BLOCKING:
                 profile.profile_state = ProfileState.IDLE
-                logging.info(
-                    ">> Action DATA for profile: %s received", response.profile_id
-                )
                 if not len(response.payload) == 0:
                     profile.data_handler(response.payload)
+                else:
+                    logging.info(
+                        ">> Empty action DATA for profile: %s received", response.profile_id
+                    )
             elif profile.profile_state == ProfileState.WAITING:
                 profile.profile_state = ProfileState.IDLE
-                logging.info(
-                    ">> Event DATA for profile: %s received", response.profile_id
-                )
                 if not len(response.payload) == 0:
                     profile.data_handler(response.payload)
+                else:
+                    logging.info(
+                        ">> Empty event DATA for profile: %s received", response.profile_id
+                    )
 
 
 class Controller(serial.threaded.ReaderThread):
