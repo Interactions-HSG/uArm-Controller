@@ -55,7 +55,9 @@ void protobuf_decode(Request *req)
 
     // FIXME: works but returns not true => check why
     if (!pb_decode(&pb_in, Request_fields, req))
+    {
         send_error(404, "Decoding failed");
+    }
 }
 
 /*========================================================================*/

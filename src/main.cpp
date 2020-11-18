@@ -91,7 +91,7 @@ void loop(void)
 
   // jump here if event occured
 event_occurred:
-  delay(1000);
+  delay(10);
 }
 
 /*========================================================================*/
