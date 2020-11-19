@@ -91,7 +91,7 @@ void loop(void)
 
   // jump here if event occured
 event_occurred:
-  delay(1000);
+  delay(10);
 }
 
 /*========================================================================*/
@@ -159,9 +159,14 @@ void action_handler(Action action)
     run_ultrasonic_sensor(action.profile_id, action.driver.a_ultrasonic_sensor);
     break;
 
-  case Action_a_step_lowlevel_tag:
-    // call action function of step_lowlevel driver
-    run_step_lowlevel(action.profile_id, action.driver.a_step_lowlevel);
+  case Action_a_step_motor_tag:
+    // call action function of step_motor driver
+    run_step_motor(action.profile_id, action.driver.a_step_motor);
+    break;
+
+  case Action_a_mcu_driver_tag:
+    // call action function of mcu_driver driver
+    run_mcu_driver(action.profile_id, action.driver.a_mcu_driver);
     break;
     // ADI-MAIN-Action: Label for automatic driver initialization (Do not move!)
 
@@ -206,9 +211,14 @@ void registration_handler(Registration registration)
     reg_success = init_ultrasonic_sensor(registration.profile_id, registration.driver.r_ultrasonic_sensor);
     break;
 
-  case Registration_r_step_lowlevel_tag:
-    //call initialization function of step_lowlevel driver
-    reg_success = init_step_lowlevel(registration.profile_id, registration.driver.r_step_lowlevel);
+  case Registration_r_step_motor_tag:
+    //call initialization function of step_motor driver
+    reg_success = init_step_motor(registration.profile_id, registration.driver.r_step_motor);
+    break;
+
+  case Registration_r_mcu_driver_tag:
+    //call initialization function of mcu_driver driver
+    reg_success = init_mcu_driver(registration.profile_id, registration.driver.r_mcu_driver);
     break;
     // ADI-MAIN-Reg: Label for automatic driver initialization (Do not move!)
 

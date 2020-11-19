@@ -31,6 +31,13 @@ enum UartPort {
   UART3 = 1;
 }
 
+// Definition of MCU actions
+enum MCUAction {
+  VERSION = 0; // get firmware version
+  RAM = 1;     // get RAM usage
+  RESET = 2;   // reset MCU
+}
+
 /*========================================================================*/
 /*                  MAIN MESSAGES: REQUEST + FEEDBACK                     */
 /*========================================================================*/
@@ -65,7 +72,8 @@ message Action {
     A_UART_TTL_Generic a_uart_ttl_generic = 3;
     A_Color_Sensor a_color_sensor = 4;
     A_Ultrasonic_Sensor a_ultrasonic_sensor = 5;
-    A_Step_Lowlevel a_step_lowlevel = 6;
+    A_Step_Motor a_step_motor = 6;
+    A_MCU_Driver a_mcu_driver = 7;
     // ADI-PROTO-Oneof-Action: Label for automatic driver initialization (Do not
     // move!)
   }
@@ -81,7 +89,8 @@ message Registration {
     R_UART_TTL_Generic r_uart_ttl_generic = 3;
     R_Color_Sensor r_color_sensor = 4;
     R_Ultrasonic_Sensor r_ultrasonic_sensor = 5;
-    R_Step_Lowlevel r_step_lowlevel = 6;
+    R_Step_Motor r_step_motor = 6;
+    R_MCU_Driver r_mcu_driver = 7;
     // ADI-PROTO-Oneof-Reg: Label for automatic driver initialization (Do not
     // move!)
   }
@@ -94,6 +103,7 @@ message Registration {
 // Action message for Digital generic driver
 message A_Digital_Generic {
   DigitalOutput output = 1; // used to write pin or to set event trigger
+  // TODO: change name to wait
   bool event_triggered = 2; // indicates if response is on event or on request
 }
 
@@ -113,10 +123,18 @@ message A_Ultrasonic_Sensor {
   bool event_triggered = 1; // indicates if response is on event or on request
 }
 
-// Action message for Step_Lowlevel driver
-message A_Step_Lowlevel {
-  // TODO: define the action message structure
+// Action message for Step_Motor driver
+message A_Step_Motor {
+  oneof mode {
+    int32 steps = 1;
+    int32 direction = 2;
+  }
+  int32 time_min_val = 3;
+  bool wait = 4;
 }
+
+// Action message for MCU_Driver driver
+message A_MCU_Driver { MCUAction mcu_action = 1; }
 // ADI-PROTO-Action: Label for automatic driver initialization (Do not move!)
 
 /*========================================================================*/
@@ -141,9 +159,14 @@ message R_Color_Sensor { uint32 address = 1; }
 // Registration message for Ultrasonic_Sensor driver
 message R_Ultrasonic_Sensor { uint32 pin = 1; }
 
-// Registration message for Step_Lowlevel driver
-message R_Step_Lowlevel {
+// Registration message for Step_Motor driver
+message R_Step_Motor {
   // TODO: define the registration message structure
+}
+
+// Registration message for MCU_Driver driver
+message R_MCU_Driver {
+  // TODO: not needed for now
 }
 // ADI-PROTO-Reg: Label for automatic driver initialization (Do not move!)
 // END: needed for proper driver initialization

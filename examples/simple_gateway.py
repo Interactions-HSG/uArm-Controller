@@ -234,9 +234,9 @@ class UartTTLGeneric(Profile):
 
 
 class ColorSensor(Profile):
-    """ Profile for color_sensor driver 
+    """ Profile for color_sensor driver
 
-        TODO: implement event handling => event on specific color range    
+        TODO: implement event handling => event on specific color range
     """
 
     def __init__(self, profile_id):
@@ -357,16 +357,18 @@ class UltrasonicSensor(Profile):
         )
 
 
-class StepLowlevel(Profile):
-    """ Profile for step_lowlevel driver """
+class StepMotor(Profile):
+    """ Profile for step_motor driver 
 
-    def __init__(self, profile_id):  # TODO: add
-        """The constructor creates an instance of a step_lowlevel profile.
+        NOT TESTED YET!
+    """
+
+    def __init__(self, profile_id):
+        """The constructor creates an instance of a step_motor profile.
 
         Args:
             profile_id ([uint8]): unique profile id
         """
-        # TODO: add fields (e.g. self.pin = pin)
         super().__init__(profile_id)
 
     def register_profile(self):
@@ -374,17 +376,31 @@ class StepLowlevel(Profile):
         req = line_protocol_pb2.Request()
         # pylint: disable=no-member
         req.registration.profile_id = self.profile_id
-        # TODO: add fields for registration
+        req.registration.r_step_motor.SetInParent()  # needed if message is empty
         controller.send(req.SerializeToString())
         logging.info(" Registration sent for Profile: %i", self.profile_id)
         super().register_wait()
 
-    def action_profile(self):  # TODO: add arguments for fields
-        """ Action function for step_lowlevel profiles """
+    def set_speed(self, direction, time_min_val, wait):
+        """ Action function for step_motor profiles to set the motor speed """
         req = line_protocol_pb2.Request()
         # pylint: disable=no-member
         req.action.profile_id = self.profile_id
-        # TODO: add fields for action function
+        req.action.a_step_motor.direction = direction
+        req.action.a_step_motor.time_min_val = time_min_val
+        req.action.a_step_motor.wait = wait
+        controller.send(req.SerializeToString())
+        self.profile_state = ProfileState.BLOCKING
+        super().action_wait()
+
+    def set_steps(self, steps, time_min_val, wait):
+        """ Action function for step_motor profiles to set the motor steps """
+        req = line_protocol_pb2.Request()
+        # pylint: disable=no-member
+        req.action.profile_id = self.profile_id
+        req.action.a_step_motor.steps = steps
+        req.action.a_step_motor.time_min_val = time_min_val
+        req.action.a_step_motor.wait = wait
         controller.send(req.SerializeToString())
         self.profile_state = ProfileState.BLOCKING
         super().action_wait()
@@ -399,7 +415,69 @@ class StepLowlevel(Profile):
         pass
 
 
+class McuDriver(Profile):
+    """ Profile for mcu_driver driver """
+
+    def __init__(self, profile_id):
+        """The constructor creates an instance of a mcu_driver profile.
+
+        Args:
+            profile_id ([uint8]): unique profile id
+        """
+        super().__init__(profile_id)
+
+    def register_profile(self):
+        """ Register new profile on MCU """
+        req = line_protocol_pb2.Request()
+        # pylint: disable=no-member
+        req.registration.profile_id = self.profile_id
+        req.registration.r_mcu_driver.SetInParent()
+        controller.send(req.SerializeToString())
+        logging.info(" Registration sent for Profile: %i", self.profile_id)
+        super().register_wait()
+
+    def get_version(self):
+        """ Action function to get current firmware version """
+        req = line_protocol_pb2.Request()
+        # pylint: disable=no-member
+        req.action.profile_id = self.profile_id
+        req.action.a_mcu_driver.mcu_action = line_protocol_pb2.VERSION
+        self.curr_request = line_protocol_pb2.VERSION
+        controller.send(req.SerializeToString())
+        self.profile_state = ProfileState.BLOCKING
+        super().action_wait()
+
+    def get_ram(self):
+        """ Action function to get free RAM space """
+        req = line_protocol_pb2.Request()
+        # pylint: disable=no-member
+        req.action.profile_id = self.profile_id
+        req.action.a_mcu_driver.mcu_action = line_protocol_pb2.RAM
+        self.curr_request = line_protocol_pb2.RAM
+        controller.send(req.SerializeToString())
+        self.profile_state = ProfileState.BLOCKING
+        super().action_wait()
+
+    def data_handler(self, data):
+        """Handles incoming data from actions or events.
+
+        Args:
+            data ([type]): TODO: has to be defined
+        """
+        if self.curr_request == line_protocol_pb2.VERSION:
+            logging.info(">> MCU firmware version: %s", data.decode("utf-8"))
+        elif self.curr_request == line_protocol_pb2.RAM:
+            # first bit is used as flag to avoid null bytes
+            ram_space = 8192
+            used_space = (data[0] & 0b01111111) + (data[1] & 0b01111111)*(2**8)
+            #used_space = 8192 - free_space
+            percentage = round((used_space/ram_space)*100, 2)
+            logging.info(">> MCU RAM: [%s%s] %i%% (used %i bytes from %i bytes)",
+                         '='*int(round(percentage/10)),
+                         ' '*(10-int(round(percentage/10))),
+                         percentage, used_space, ram_space)
 # ADI-PY-Profile: Label for automatic driver initialization (Do not move!)
+
 
 """" ---------- Classes for protobuf message handling ---------- """
 
@@ -416,6 +494,7 @@ class ControllerPacketHandler(serial.threaded.Packetizer):
         # print(response.__str__())
         if response.code == line_protocol_pb2.DEBUG:
             logging.debug(">> %s", response.payload.decode("utf-8"))
+
         elif response.code == line_protocol_pb2.ERROR:
             logging.error(
                 ">> Profile: %i %s",
@@ -427,6 +506,7 @@ class ControllerPacketHandler(serial.threaded.Packetizer):
             profile.profile_state = ProfileState.WAITING
             logging.info(">> ACK for profile: %s received",
                          response.profile_id)
+
         elif response.code == line_protocol_pb2.DATA:
             profile = profiles.get_profile(response.profile_id)
             if profile.profile_state == ProfileState.UNREG:
@@ -437,18 +517,20 @@ class ControllerPacketHandler(serial.threaded.Packetizer):
                     response.profile_id)
             elif profile.profile_state == ProfileState.BLOCKING:
                 profile.profile_state = ProfileState.IDLE
-                logging.info(
-                    ">> Action DATA for profile: %s received", response.profile_id
-                )
                 if not len(response.payload) == 0:
                     profile.data_handler(response.payload)
+                else:
+                    logging.info(
+                        ">> Empty action DATA for profile: %s received", response.profile_id
+                    )
             elif profile.profile_state == ProfileState.WAITING:
                 profile.profile_state = ProfileState.IDLE
-                logging.info(
-                    ">> Event DATA for profile: %s received", response.profile_id
-                )
                 if not len(response.payload) == 0:
                     profile.data_handler(response.payload)
+                else:
+                    logging.info(
+                        ">> Empty event DATA for profile: %s received", response.profile_id
+                    )
 
 
 class Controller(serial.threaded.ReaderThread):
@@ -478,6 +560,7 @@ class Controller(serial.threaded.ReaderThread):
 profiles = ProfileManager()
 
 # define used Profile IDs (div: green will change to blue)
+mcu_driver_id = 0
 red_LED_profile_id = 1
 div_LED_profile_id = 2
 button_A_profile_id = 5
@@ -487,6 +570,8 @@ color_sensor_id = 20
 ultrasonic_sensor_id = 21
 tube_sensor_id = 22
 
+# create profile for MCU
+McuDriver(mcu_driver_id)
 # create profile for red LED
 DigitalGeneric(red_LED_profile_id, 2, line_protocol_pb2.OUTPUT)
 # create profile for green LED
@@ -542,23 +627,24 @@ def subroutine_test():
     # while cube available on ramp
     while not tube_profile.read_digital():
         # robot to ramp
-        uArm_profile.send_command("G0 X84 Y-160 Z90 F100\n", False)
-        uArm_profile.send_command("G0 X84 Y-160 Z50 F5\n", False)
+        uArm_profile.send_command("G0 X84 Y-160 Z70 F100\n", False)
+        uArm_profile.send_command("G0 X84 Y-160 Z50 F20\n", False)
         # pump on
         uArm_profile.send_command("M2231 V1\n", False)
-        time.sleep(1)
-        uArm_profile.send_command("G0 X84 Y-160 Z90 F5\n", False)
+        time.sleep(0.5)
+        uArm_profile.send_command("G0 X84 Y-160 Z90 F20\n", False)
 
         # robot go to color sensor
         uArm_profile.send_command("G0 X141 Y-76 Z70 F50\n", False)
-        uArm_profile.send_command("G0 X141 Y-76 Z46 F5\n", False)
+        uArm_profile.send_command("G0 X141 Y-76 Z46 F20\n", False)
         # Color sensor: measure color
+        time.sleep(1)
         color_profile.action_profile()
-        uArm_profile.send_command("G0 X141 Y-76 Z55 F5\n", False)
+        uArm_profile.send_command("G0 X141 Y-76 Z55 F20\n", False)
 
         if color_profile.estimated_color == "Wood":
             uArm_profile.send_command("G0 X104 Y160 Z55 F50\n", False)
-            uArm_profile.send_command("G0 X104 Y160 Z28 F5\n", False)
+            uArm_profile.send_command("G0 X104 Y160 Z28 F20\n", False)
             # pump off
             uArm_profile.send_command("M2231 V0\n", False)
             uArm_profile.send_command("G0 X104 Y160 Z55 F50\n", False)
@@ -595,7 +681,14 @@ if __name__ == "__main__":
         profile.register_profile()
 
     counter = 0
-    simple_tests = True
+    simple_tests = False
+
+    """ get current driver version + current RAM usage """
+    profile = profiles.get_profile(mcu_driver_id)
+    if profile is not None:
+        if profile.profile_state == ProfileState.IDLE:
+            profile.get_version()
+            profile.get_ram()
 
     while simple_tests:
 
@@ -665,15 +758,15 @@ if __name__ == "__main__":
                     """ send action to turn led on"""
                     profile.write_digital(line_protocol_pb2.HIGH)
 
-    # try:
-    #     subroutine_test()
-    # except KeyboardInterrupt:
-    #     uArm_profile = profiles.get_profile(uArm1_profile_id)
-    #     uArm_profile.send_command("M2231 V0\n", False)
-    #     # TODO: implement proper interrupt handling
-    #     #uArm_profile.send_command("G0 X180 Y0 Z160 F50\n", False)
-    #     print('Interrupted')
-    #     try:
-    #         sys.exit(0)
-    #     except SystemExit:
-    #         os._exit(0)
+    try:
+        subroutine_test()
+    except KeyboardInterrupt:
+        uArm_profile = profiles.get_profile(uArm1_profile_id)
+        uArm_profile.send_command("M2231 V0\n", False)
+        # TODO: implement proper interrupt handling
+        #uArm_profile.send_command("G0 X180 Y0 Z160 F50\n", False)
+        print('Interrupted')
+        try:
+            sys.exit(0)
+        except SystemExit:
+            os._exit(0)
