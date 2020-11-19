@@ -52,11 +52,11 @@ void protobuf_init()
 */
 void protobuf_decode(Request *req)
 {
-
-    // FIXME: works but returns not true => check why
-    if (!pb_decode(&pb_in, Request_fields, req))
+    if (!pb_decode_ex(&pb_in, Request_fields, req, PB_DECODE_NULLTERMINATED))
     {
-        send_error(404, "Decoding failed");
+        char msg[100];
+        snprintf_P(msg, sizeof(msg), PSTR("Decoding failed: %s\n"), PB_GET_ERROR(&pb_in));
+        send_error(404, msg);
     }
 }
 
