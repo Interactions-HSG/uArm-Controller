@@ -1,5 +1,5 @@
-#ifndef _STEP_LOWLEVEL_H_
-#define _STEP_LOWLEVEL_H_
+#ifndef _STEP_MOTOR_H_
+#define _STEP_MOTOR_H_
 
 #include "main.h"
 
@@ -9,15 +9,15 @@
 
 /**************************************************************************/
 /*!
-    @brief  Initialization function for step_lowlevel driver
+    @brief  Initialization function for step_motor driver
     @return boolean if initialization was successful or not
 */
-bool init_step_lowlevel(uint32_t profile_id, R_Step_Lowlevel profile);
+bool init_step_motor(uint32_t profile_id, R_Step_Motor profile);
 
 /**************************************************************************/
 /*!
-    @brief  Action function for step_lowlevel ddriver
+    @brief  Action function for step_motor ddriver
 */
-void run_step_lowlevel(uint32_t profile_id, A_Step_Lowlevel action);
+void run_step_motor(uint32_t profile_id, A_Step_Motor action);
 
 #endif

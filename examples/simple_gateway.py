@@ -357,16 +357,18 @@ class UltrasonicSensor(Profile):
         )
 
 
-class StepLowlevel(Profile):
-    """ Profile for step_lowlevel driver """
+class StepMotor(Profile):
+    """ Profile for step_motor driver 
 
-    def __init__(self, profile_id):  # TODO: add
-        """The constructor creates an instance of a step_lowlevel profile.
+        NOT TESTED YET!
+    """
+
+    def __init__(self, profile_id):
+        """The constructor creates an instance of a step_motor profile.
 
         Args:
             profile_id ([uint8]): unique profile id
         """
-        # TODO: add fields (e.g. self.pin = pin)
         super().__init__(profile_id)
 
     def register_profile(self):
@@ -374,17 +376,31 @@ class StepLowlevel(Profile):
         req = line_protocol_pb2.Request()
         # pylint: disable=no-member
         req.registration.profile_id = self.profile_id
-        # TODO: add fields for registration
+        req.registration.r_step_motor.SetInParent()  # needed if message is empty
         controller.send(req.SerializeToString())
         logging.info(" Registration sent for Profile: %i", self.profile_id)
         super().register_wait()
 
-    def action_profile(self):  # TODO: add arguments for fields
-        """ Action function for step_lowlevel profiles """
+    def set_speed(self, direction, time_min_val, wait):
+        """ Action function for step_motor profiles to set the motor speed """
         req = line_protocol_pb2.Request()
         # pylint: disable=no-member
         req.action.profile_id = self.profile_id
-        # TODO: add fields for action function
+        req.action.a_step_motor.direction = direction
+        req.action.a_step_motor.time_min_val = time_min_val
+        req.action.a_step_motor.wait = wait
+        controller.send(req.SerializeToString())
+        self.profile_state = ProfileState.BLOCKING
+        super().action_wait()
+
+    def set_steps(self, steps, time_min_val, wait):
+        """ Action function for step_motor profiles to set the motor steps """
+        req = line_protocol_pb2.Request()
+        # pylint: disable=no-member
+        req.action.profile_id = self.profile_id
+        req.action.a_step_motor.steps = steps
+        req.action.a_step_motor.time_min_val = time_min_val
+        req.action.a_step_motor.wait = wait
         controller.send(req.SerializeToString())
         self.profile_state = ProfileState.BLOCKING
         super().action_wait()
@@ -693,55 +709,54 @@ if __name__ == "__main__":
         if profile is not None:
             if profile.profile_state == ProfileState.IDLE:
                 profile.action_profile()
-        time.sleep(1)
 
-        # """ Test for event handling: call event for button A """
-        # profile = profiles.get_profile(button_A_profile_id)
-        # if profile is not None:
-        #     if profile.profile_state == ProfileState.IDLE:
-        #         profile.read_event_digital(line_protocol_pb2.LOW)
+        """ Test for event handling: call event for button A """
+        profile = profiles.get_profile(button_A_profile_id)
+        if profile is not None:
+            if profile.profile_state == ProfileState.IDLE:
+                profile.read_event_digital(line_protocol_pb2.LOW)
 
-        # """ Test: updating profile """
-        # if counter == 4:
-        #     # create profile for blue LED (same ID as green!)
-        #     profile = DigitalGeneric(
-        #         div_LED_profile_id, 5, line_protocol_pb2.OUTPUT)
-        #     profile.register_profile()
-        # elif counter == 9:
-        #     # create profile for green LED (same ID as blue => overwritten!)
-        #     profile = DigitalGeneric(
-        #         div_LED_profile_id, 3, line_protocol_pb2.OUTPUT)
-        #     profile.register_profile()
-        # counter = (counter + 1) % 10
+        """ Test: updating profile """
+        if counter == 4:
+            # create profile for blue LED (same ID as green!)
+            profile = DigitalGeneric(
+                div_LED_profile_id, 5, line_protocol_pb2.OUTPUT)
+            profile.register_profile()
+        elif counter == 9:
+            # create profile for green LED (same ID as blue => overwritten!)
+            profile = DigitalGeneric(
+                div_LED_profile_id, 3, line_protocol_pb2.OUTPUT)
+            profile.register_profile()
+        counter = (counter + 1) % 10
 
-        # """ Test: toggle green/blue LED """
-        # profile = profiles.get_profile(div_LED_profile_id)
-        # if profile is not None:
-        #     if profile.profile_state == ProfileState.IDLE:
-        #         if profile.pin_state:
-        #             """ send action to turn led off"""
-        #             profile.write_digital(line_protocol_pb2.LOW)
-        #         else:
-        #             """ send action to turn led on"""
-        #             profile.write_digital(line_protocol_pb2.HIGH)
+        """ Test: toggle green/blue LED """
+        profile = profiles.get_profile(div_LED_profile_id)
+        if profile is not None:
+            if profile.profile_state == ProfileState.IDLE:
+                if profile.pin_state:
+                    """ send action to turn led off"""
+                    profile.write_digital(line_protocol_pb2.LOW)
+                else:
+                    """ send action to turn led on"""
+                    profile.write_digital(line_protocol_pb2.HIGH)
 
-        # """ send gcode command to uArm1 """
-        # profile = profiles.get_profile(uArm1_profile_id)
-        # if profile is not None:
-        #     if profile.profile_state == ProfileState.IDLE:
-        #         # profile.send_command(" P2220\n", False)
-        #         profile.send_next()
+        """ send gcode command to uArm1 """
+        profile = profiles.get_profile(uArm1_profile_id)
+        if profile is not None:
+            if profile.profile_state == ProfileState.IDLE:
+                # profile.send_command(" P2220\n", False)
+                profile.send_next()
 
-        # """ Test: toggle red LED """
-        # profile = profiles.get_profile(red_LED_profile_id)
-        # if profile is not None:
-        #     if profile.profile_state == ProfileState.IDLE:
-        #         if profile.pin_state:
-        #             """ send action to turn led off"""
-        #             profile.write_digital(line_protocol_pb2.LOW)
-        #         else:
-        #             """ send action to turn led on"""
-        #             profile.write_digital(line_protocol_pb2.HIGH)
+        """ Test: toggle red LED """
+        profile = profiles.get_profile(red_LED_profile_id)
+        if profile is not None:
+            if profile.profile_state == ProfileState.IDLE:
+                if profile.pin_state:
+                    """ send action to turn led off"""
+                    profile.write_digital(line_protocol_pb2.LOW)
+                else:
+                    """ send action to turn led on"""
+                    profile.write_digital(line_protocol_pb2.HIGH)
 
     try:
         subroutine_test()
