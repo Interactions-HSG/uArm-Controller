@@ -327,7 +327,8 @@ class UltrasonicSensor(Profile):
         req.registration.profile_id = self.profile_id
         req.registration.r_ultrasonic_sensor.pin = self.pin
         controller.send(req.SerializeToString())
-        logging.info(" Registration sent for Profile: %i", self.profile_id)
+        logging.info(
+            " Registration sent for Profile: %i  <=======", self.profile_id)
         super().register_wait()
 
     def action_profile(self):
@@ -338,7 +339,7 @@ class UltrasonicSensor(Profile):
         req.action.a_ultrasonic_sensor.event_triggered = False  # not supported
         controller.send(req.SerializeToString())
         logging.info(
-            "Ultrasonic sensor: sent action (Profile: %i)", self.profile_id)
+            "Ultrasonic sensor: sent action (Profile: %i)  <=======", self.profile_id)
         self.profile_state = ProfileState.BLOCKING
         super().action_wait()
 
@@ -351,7 +352,7 @@ class UltrasonicSensor(Profile):
         # first bit is used as flag to avoid null bytes
         distance = (data[0] & 0b01111111) + (data[1] & 0b01111111)*128
         logging.info(
-            ">> Utrasonic sensor DATA: distance: %i cm (Profile: %i)",
+            ">> Utrasonic sensor DATA: distance: %i cm (Profile: %i) <=======",
             distance,
             self.profile_id,
         )
@@ -573,11 +574,11 @@ tube_sensor_id = 22
 # create profile for MCU
 McuDriver(mcu_driver_id)
 # create profile for red LED
-DigitalGeneric(red_LED_profile_id, 2, line_protocol_pb2.OUTPUT)
+#DigitalGeneric(red_LED_profile_id, 2, line_protocol_pb2.OUTPUT)
 # create profile for green LED
-DigitalGeneric(div_LED_profile_id, 3, line_protocol_pb2.OUTPUT)
+#DigitalGeneric(div_LED_profile_id, 3, line_protocol_pb2.OUTPUT)
 # create profile for button A (event triggered)
-DigitalGeneric(button_A_profile_id, 47, line_protocol_pb2.INPUT_PULLUP)
+#DigitalGeneric(button_A_profile_id, 47, line_protocol_pb2.INPUT_PULLUP)
 # create profile for UART2-TTL: uArm1
 UartTTLGeneric(uArm1_profile_id, line_protocol_pb2.UART2, BAUDRATE)
 profiles.get_profile(uArm1_profile_id).create_cmd_list(
@@ -604,20 +605,26 @@ profiles.get_profile(uArm1_profile_id).create_cmd_list(
 # create profile for color sensor
 ColorSensor(color_sensor_id)
 # create profile for ultrasonic sensor
-UltrasonicSensor(ultrasonic_sensor_id, 23)
+#UltrasonicSensor(ultrasonic_sensor_id, 23)
 # create profile for tube sensor
 DigitalGeneric(tube_sensor_id, 25, line_protocol_pb2.INPUT_PULLUP)
 
 
 def subroutine_test():
     """ Subroutine to test combination of sensors/actuators """
+
+    # DEMO:
+    # create profile for ultrasonic sensor
+    ultrasonic_profile = UltrasonicSensor(50, 23)
+    ultrasonic_profile.register_profile()
+
     # get needed profiles
     uArm_profile = profiles.get_profile(uArm1_profile_id)
     color_profile = profiles.get_profile(color_sensor_id)
     tube_profile = profiles.get_profile(tube_sensor_id)
 
     # reset uArm
-    uArm_profile.send_command("G0 X180 Y0 Z160 F50\n", False)
+    uArm_profile.send_command("G0 X180 Y0 Z160 F30\n", False)
     uArm_profile.send_command("M2210 F2000 T200\n", False)
     uArm_profile.send_command("M2210 F1000 T300\n", False)
 
@@ -625,45 +632,54 @@ def subroutine_test():
     num_color_cubes = 0
 
     # while cube available on ramp
-    while not tube_profile.read_digital():
-        # robot to ramp
-        uArm_profile.send_command("G0 X84 Y-160 Z70 F100\n", False)
-        uArm_profile.send_command("G0 X84 Y-160 Z50 F20\n", False)
-        # pump on
-        uArm_profile.send_command("M2231 V1\n", False)
-        time.sleep(0.5)
-        uArm_profile.send_command("G0 X84 Y-160 Z90 F20\n", False)
+    while True:
+        # DEMO:
+        # measure hight
+        ultrasonic_profile.action_profile
 
-        # robot go to color sensor
-        uArm_profile.send_command("G0 X141 Y-76 Z70 F50\n", False)
-        uArm_profile.send_command("G0 X141 Y-76 Z46 F20\n", False)
-        # Color sensor: measure color
-        time.sleep(1)
-        color_profile.action_profile()
-        uArm_profile.send_command("G0 X141 Y-76 Z55 F20\n", False)
+        if not tube_profile.read_digital():
+            # robot to ramp
+            uArm_profile.send_command("G0 X84 Y-160 Z70 F100\n", False)
+            uArm_profile.send_command("G0 X84 Y-160 Z50 F20\n", False)
+            # pump on
+            uArm_profile.send_command("M2231 V1\n", False)
+            time.sleep(0.5)
+            uArm_profile.send_command("G0 X84 Y-160 Z90 F20\n", False)
 
-        if color_profile.estimated_color == "Wood":
-            uArm_profile.send_command("G0 X104 Y160 Z55 F50\n", False)
-            uArm_profile.send_command("G0 X104 Y160 Z28 F20\n", False)
-            # pump off
-            uArm_profile.send_command("M2231 V0\n", False)
-            uArm_profile.send_command("G0 X104 Y160 Z55 F50\n", False)
+            # robot go to color sensor
+            uArm_profile.send_command("G0 X141 Y-76 Z70 F50\n", False)
+            uArm_profile.send_command("G0 X141 Y-76 Z46 F20\n", False)
+
+            # Color sensor: measure color
+            time.sleep(1)
+            color_profile.action_profile()
+            uArm_profile.send_command("G0 X141 Y-76 Z55 F20\n", False)
+
+            if color_profile.estimated_color == "Wood":
+                uArm_profile.send_command("G0 X104 Y160 Z55 F50\n", False)
+                uArm_profile.send_command("G0 X104 Y160 Z28 F20\n", False)
+                # pump off
+                uArm_profile.send_command("M2231 V0\n", False)
+                uArm_profile.send_command("G0 X104 Y160 Z55 F50\n", False)
+            else:
+                num_color_cubes += 1
+                end_destination = num_color_cubes*30
+                uArm_profile.send_command(
+                    "G0 X178 Y160 Z{} F50\n".format(end_destination + 10), False)
+                uArm_profile.send_command(
+                    "G0 X178 Y160 Z{} F5\n".format(end_destination), False)
+                # pump off
+                uArm_profile.send_command("M2231 V0\n", False)
+                uArm_profile.send_command(
+                    "G0 X178 Y160 Z{} F5\n".format(end_destination + 10), False)
+
+            # go to start position
+            uArm_profile.send_command("G0 X180 Y0 Z160 F100\n", False)
+
         else:
-            num_color_cubes += 1
-            end_destination = num_color_cubes*30
-            uArm_profile.send_command(
-                "G0 X178 Y160 Z{} F50\n".format(end_destination + 10), False)
-            uArm_profile.send_command(
-                "G0 X178 Y160 Z{} F5\n".format(end_destination), False)
-            # pump off
-            uArm_profile.send_command("M2231 V0\n", False)
-            uArm_profile.send_command(
-                "G0 X178 Y160 Z{} F5\n".format(end_destination + 10), False)
-
-    # go to start position
-    uArm_profile.send_command("G0 X180 Y0 Z160 F100\n", False)
-    uArm_profile.send_command("M2210 F1000 T300\n", False)
-    uArm_profile.send_command("M2210 F2000 T200\n", False)
+            uArm_profile.send_command("M2210 F1000 T300\n", False)
+            uArm_profile.send_command("M2210 F2000 T200\n", False)
+            break
 
 
 """" ---------- Main ---------- """
@@ -693,70 +709,70 @@ if __name__ == "__main__":
     while simple_tests:
 
         """ Test for tube Sensor """
-        profile = profiles.get_profile(tube_sensor_id)
-        if profile is not None:
-            if profile.profile_state == ProfileState.IDLE:
-                profile.read_digital()
+        # profile = profiles.get_profile(tube_sensor_id)
+        # if profile is not None:
+        #     if profile.profile_state == ProfileState.IDLE:
+        #         profile.read_digital()
 
         """ Test for Ultrasonic Sensor driver """
         profile = profiles.get_profile(ultrasonic_sensor_id)
         if profile is not None:
             if profile.profile_state == ProfileState.IDLE:
                 profile.action_profile()
+        time.sleep(1)
+        # """ Test for Color Sensor driver """
+        # profile = profiles.get_profile(color_sensor_id)
+        # if profile is not None:
+        #     if profile.profile_state == ProfileState.IDLE:
+        #         profile.action_profile()
 
-        """ Test for Color Sensor driver """
-        profile = profiles.get_profile(color_sensor_id)
-        if profile is not None:
-            if profile.profile_state == ProfileState.IDLE:
-                profile.action_profile()
+        # """ Test for event handling: call event for button A """
+        # profile = profiles.get_profile(button_A_profile_id)
+        # if profile is not None:
+        #     if profile.profile_state == ProfileState.IDLE:
+        #         profile.read_event_digital(line_protocol_pb2.LOW)
 
-        """ Test for event handling: call event for button A """
-        profile = profiles.get_profile(button_A_profile_id)
-        if profile is not None:
-            if profile.profile_state == ProfileState.IDLE:
-                profile.read_event_digital(line_protocol_pb2.LOW)
+        # """ Test: updating profile """
+        # if counter == 4:
+        #     # create profile for blue LED (same ID as green!)
+        #     profile = DigitalGeneric(
+        #         div_LED_profile_id, 5, line_protocol_pb2.OUTPUT)
+        #     profile.register_profile()
+        # elif counter == 9:
+        #     # create profile for green LED (same ID as blue => overwritten!)
+        #     profile = DigitalGeneric(
+        #         div_LED_profile_id, 3, line_protocol_pb2.OUTPUT)
+        #     profile.register_profile()
+        # counter = (counter + 1) % 10
 
-        """ Test: updating profile """
-        if counter == 4:
-            # create profile for blue LED (same ID as green!)
-            profile = DigitalGeneric(
-                div_LED_profile_id, 5, line_protocol_pb2.OUTPUT)
-            profile.register_profile()
-        elif counter == 9:
-            # create profile for green LED (same ID as blue => overwritten!)
-            profile = DigitalGeneric(
-                div_LED_profile_id, 3, line_protocol_pb2.OUTPUT)
-            profile.register_profile()
-        counter = (counter + 1) % 10
+        # """ Test: toggle green/blue LED """
+        # profile = profiles.get_profile(div_LED_profile_id)
+        # if profile is not None:
+        #     if profile.profile_state == ProfileState.IDLE:
+        #         if profile.pin_state:
+        #             """ send action to turn led off"""
+        #             profile.write_digital(line_protocol_pb2.LOW)
+        #         else:
+        #             """ send action to turn led on"""
+        #             profile.write_digital(line_protocol_pb2.HIGH)
 
-        """ Test: toggle green/blue LED """
-        profile = profiles.get_profile(div_LED_profile_id)
-        if profile is not None:
-            if profile.profile_state == ProfileState.IDLE:
-                if profile.pin_state:
-                    """ send action to turn led off"""
-                    profile.write_digital(line_protocol_pb2.LOW)
-                else:
-                    """ send action to turn led on"""
-                    profile.write_digital(line_protocol_pb2.HIGH)
+        # """ send gcode command to uArm1 """
+        # profile = profiles.get_profile(uArm1_profile_id)
+        # if profile is not None:
+        #     if profile.profile_state == ProfileState.IDLE:
+        #         # profile.send_command(" P2220\n", False)
+        #         profile.send_next()
 
-        """ send gcode command to uArm1 """
-        profile = profiles.get_profile(uArm1_profile_id)
-        if profile is not None:
-            if profile.profile_state == ProfileState.IDLE:
-                # profile.send_command(" P2220\n", False)
-                profile.send_next()
-
-        """ Test: toggle red LED """
-        profile = profiles.get_profile(red_LED_profile_id)
-        if profile is not None:
-            if profile.profile_state == ProfileState.IDLE:
-                if profile.pin_state:
-                    """ send action to turn led off"""
-                    profile.write_digital(line_protocol_pb2.LOW)
-                else:
-                    """ send action to turn led on"""
-                    profile.write_digital(line_protocol_pb2.HIGH)
+        # """ Test: toggle red LED """
+        # profile = profiles.get_profile(red_LED_profile_id)
+        # if profile is not None:
+        #     if profile.profile_state == ProfileState.IDLE:
+        #         if profile.pin_state:
+        #             """ send action to turn led off"""
+        #             profile.write_digital(line_protocol_pb2.LOW)
+        #         else:
+        #             """ send action to turn led on"""
+        #             profile.write_digital(line_protocol_pb2.HIGH)
 
     try:
         subroutine_test()
