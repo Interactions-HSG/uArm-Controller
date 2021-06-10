@@ -1,0 +1,71 @@
+{
+    "@context": "https://www.w3.org/2019/wot/td/v1",
+    "id": "ch.unisg:ics:wot-fx:uarm-controller",
+    "title": "uArm-Controller",
+    "securityDefinitions": {
+        "nosec_sc": {
+            "scheme": "nosec"
+        }
+    },
+    "security": [
+        "nosec_sc"
+    ],
+    "properties": {
+        "version": {
+            "title": "Version",
+            "description": "Returns the firmware version installed on the controller.",
+            "type": "String",
+            "forms": [
+                {
+                    "href": "http://<IP_ADD>/uarm-controller/properties/version",
+                    "op": [
+                        "readproperty"
+                    ],
+                    "contentType": "application/json"
+                }
+            ]
+        },
+        "ram": {
+            "title": "RAM usage",
+            "description": "Returns the RAM space usage of the controller",
+            "type": "String",
+            "forms": [
+                {
+                    "href": "http://<IP_ADD>/uarm-controller/properties/ram",
+                    "op": [
+                        "readproperty"
+                    ],
+                    "contentType": "application/json"
+                }
+            ]
+        }
+    },
+    "actions": {
+        "toggle-led": {
+            "title": "Toggle Red LED",
+            "description": "Toggle the red LED",
+            "forms": [
+                {
+                    "href": "http://<IP_ADD>/uarm-controller/actions/toggle",
+                    "contentType": "application/json",
+                    "op": "invokeaction",
+                    "htv:methodName": "POST"
+                }
+            ],
+            "idempotent": false,
+            "safe": false
+        }
+    },
+    "links": [
+        {
+            "rel": "controls",
+            "href": "http://<IP_ADD>/uarm-1",
+            "type": "application/json"
+        },
+        {
+            "rel": "controls",
+            "href": "http://<IP_ADD>/colorsensor",
+            "type": "application/json"
+        }
+    ]
+}

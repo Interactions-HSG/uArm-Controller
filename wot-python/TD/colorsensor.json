@@ -1,0 +1,74 @@
+{
+    "@context": "https://www.w3.org/2019/wot/td/v1",
+    "id": "ch.unisg:ics:wot-fx:colorsensor",
+    "title": "Colorsensor",
+    "securityDefinitions": {
+        "nosec_sc": {
+            "scheme": "nosec"
+        }
+    },
+    "security": [
+        "nosec_sc"
+    ],
+    "properties": {
+        "values": {
+            "title": "Sensorvalues",
+            "description": "Returns RGB values of color sensor.",
+            "type": "object",
+            "properties": {
+                "r": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 255
+                },
+                "g": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 255
+                },
+                "b": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 255
+                }
+            },
+            "forms": [
+                {
+                    "href": "http://<IP_ADD>/colorsensor/properties/values",
+                    "op": [
+                        "readproperty"
+                    ],
+                    "contentType": "application/json"
+                }
+            ]
+        },
+        "estimatedcolor": {
+            "title": "estimated Color",
+            "description": "Returns the estimated color.",
+            "type": "string",
+            "enum": [
+                "Red",
+                "Yellow",
+                "Green",
+                "Wood"
+            ],
+            "forms": [
+                {
+                    "href": "http://<IP_ADD>/colorsensor/properties/estimatedcolor",
+                    "op": [
+                        "readproperty"
+                    ],
+                    "contentType": "application/json"
+                }
+            ]
+        }
+    },
+    "actions": {},
+    "links": [
+        {
+            "rel": "controlledBy",
+            "href": "http://<IP_ADD>/uarm-controller",
+            "type": "application/json"
+        }
+    ]
+}

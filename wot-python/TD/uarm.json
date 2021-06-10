@@ -1,0 +1,50 @@
+{
+    "@context": "https://www.w3.org/2019/wot/td/v1",
+    "id": "ch.unisg:ics:wot-fx:uarm-1",
+    "title": "uArm-1",
+    "securityDefinitions": {
+        "nosec_sc": {
+            "scheme": "nosec"
+        }
+    },
+    "security": [
+        "nosec_sc"
+    ],
+    "properties": {},
+    "actions": {
+        "sendcommand": {
+            "title": "Send Command",
+            "description": "Send G-code command to uArm",
+            "input": {
+                "type": "object",
+                "required": [
+                    "command"
+                ],
+                "properties": {
+                    "command": {
+                        "type": "string"
+                    },
+                    "blocking": {
+                        "type": "boolean",
+                        "default": true
+                    }
+                }
+            },
+            "forms": [
+                {
+                    "href": "http://<IP_ADD>/uarm-1/actions/sendcommand",
+                    "contentType": "application/json",
+                    "op": "invokeaction",
+                    "htv:methodName": "POST"
+                }
+            ],
+            "idempotent": false,
+            "safe": false
+        }
+    },
+    "links":[{
+        "rel": "controlledBy",
+        "href": "http://<IP_ADD>/uarm-controller",
+        "type": "application/json"
+    }]
+}

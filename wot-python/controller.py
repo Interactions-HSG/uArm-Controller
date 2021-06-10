@@ -21,10 +21,12 @@ from enum import Enum
 import line_protocol_pb2
 
 
+
 """ ---------- Variables ---------- """
 
 # baudrate for UART
 BAUDRATE = 115200
+CONTROLLER_PORT = "COM4"
 
 """" ---------- Classes for profiles ---------- """
 
@@ -233,6 +235,78 @@ class UartTTLGeneric(Profile):
         """
         logging.info(">> UART TTL Response: %s", data.decode("utf-8"))
 
+class ColorSensor(Profile):
+    """ Profile for color_sensor driver
+
+        TODO: implement event handling => event on specific color range
+    """
+
+    def __init__(self, profile_id):
+        """The constructor creates an instance of a color_sensor profile.
+
+        Args:
+            profile_id ([uint8]): unique profile id
+        """
+        self.r = 0
+        self.g = 0
+        self.b = 0
+        self.estimated_color = "Unknown"
+        super().__init__(profile_id)
+
+    def register_profile(self):
+        """ Register new profile on MCU """
+        req = line_protocol_pb2.Request()
+        # pylint: disable=no-member
+        req.registration.profile_id = self.profile_id
+        req.registration.r_color_sensor.address = 0  # currently not used
+        controller.send(req.SerializeToString())
+        logging.info(" Registration sent for Profile: %i", self.profile_id)
+        super().register_wait()
+
+    def action_profile(self):
+        """ Action function for color_sensor profiles """
+        req = line_protocol_pb2.Request()
+        # pylint: disable=no-member
+        req.action.profile_id = self.profile_id
+        req.action.a_color_sensor.event_triggered = False  # currently not supported
+        controller.send(req.SerializeToString())
+        logging.info(
+            " Read request for color sensor sent (Profile: %i)", self.profile_id
+        )
+        self.profile_state = ProfileState.BLOCKING
+        super().action_wait()
+
+    def _estimate_color(self):
+        _red = [165, 57, 52, "Red"]
+        _yellow = [255, 255, 110, "Yellow"]
+        _green = [49, 90, 65, "Green"]
+        _wood = [201, 186, 126, "Wood"]
+        _colors = [_red, _yellow, _green, _wood]
+        _distances = [0, 0, 0, 0]
+        for i, color in enumerate(_colors):
+            _distances[i] = math.sqrt(
+                (color[0]-self.r)**2 + (color[1]-self.g)**2 + (color[2]-self.b)**2)
+        min_index = _distances.index(min(_distances))
+        self.estimated_color = _colors[min_index][3]
+
+    def data_handler(self, data):
+        """Handles incoming data from actions or events.
+
+        Args:
+            data (byte[3]): RGB value with one byte for each color
+        """
+        self.r = data[0]
+        self.g = data[1]
+        self.b = data[2]
+        logging.info(
+            ">> Color sensor DATA: R: %i, G: %i, B: %i (Profile: %i)",
+            self.r,
+            self.g,
+            self.b,
+            self.profile_id,
+        )
+        self._estimate_color()
+        logging.info("Estimated color: %s", self.estimated_color)
 
 class McuDriver(Profile):
     """ Profile for mcu_driver driver """
@@ -382,11 +456,15 @@ profiles = ProfileManager()
 # create profiles
 mcu_profile = McuDriver(0)
 red_led_profile = DigitalGeneric(10, 2, line_protocol_pb2.OUTPUT)
+uarm_profile = UartTTLGeneric(2, line_protocol_pb2.UART2, BAUDRATE)
+colorsensor_profile = ColorSensor(3)
     
-controller = Controller("COM4", ControllerPacketHandler)
+controller = Controller(CONTROLLER_PORT, ControllerPacketHandler)
 controller.start()
 time.sleep(3)
 
 """ register all profiles"""
 mcu_profile.register_profile()
 red_led_profile.register_profile()
+uarm_profile.register_profile()
+colorsensor_profile.register_profile()
